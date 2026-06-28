@@ -4,15 +4,29 @@ import { revalidatePath } from "next/cache";
 import { recalculateBalancesForAccounts } from "@/features/movements/balance-service";
 import {
   confirmTransferSchema,
+  createBalanceAdjustmentSchema,
+  createBonusSchema,
   createCapitalDepositSchema,
   createCapitalWithdrawalSchema,
+  createCashbackSchema,
+  createConversionSchema,
+  createFeeSchema,
   createTransferSchema,
+  mapBonusToMovementStatus,
+  mapCashbackToMovementStatus,
   updateCapitalMovementSchema,
+  updateSimpleMovementSchema,
   type ConfirmTransferInput,
+  type CreateBalanceAdjustmentInput,
+  type CreateBonusInput,
   type CreateCapitalDepositInput,
   type CreateCapitalWithdrawalInput,
+  type CreateCashbackInput,
+  type CreateConversionInput,
+  type CreateFeeInput,
   type CreateTransferInput,
   type UpdateCapitalMovementInput,
+  type UpdateSimpleMovementInput,
 } from "@/features/movements/schemas";
 import { calculateAmountBrl } from "@/shared/lib/domain/balance";
 import { getOperatorId } from "@/shared/lib/auth/get-operator";
@@ -69,18 +83,17 @@ async function getCurrencyRate(currencyId: string) {
   return data as { code: string; last_rate_brl: number };
 }
 
-async function checkDuplicateExternalId(externalId?: string) {
-  if (!externalId?.trim()) return;
+export async function hasDuplicateExternalId(
+  externalId?: string,
+): Promise<boolean> {
+  if (!externalId?.trim()) return false;
   const supabase = await createClient();
   const { data } = await supabase
     .from("movements")
     .select("id")
     .eq("external_id", externalId.trim())
     .maybeSingle();
-
-  if (data) {
-    throw new Error("Já existe movimentação com este identificador");
-  }
+  return Boolean(data);
 }
 
 async function createMovementRow(input: {
@@ -292,8 +305,6 @@ export async function createTransfer(input: CreateTransferInput) {
   const parsed = createTransferSchema.parse(input);
   await assertAccountOpen(parsed.from_account_id);
   await assertAccountOpen(parsed.to_account_id);
-  await checkDuplicateExternalId(parsed.external_id);
-
   const fromCurrency = await getCurrencyRate(parsed.from_currency_id);
   const toCurrency = await getCurrencyRate(parsed.to_currency_id);
   const transferGroupId = crypto.randomUUID();
@@ -442,6 +453,294 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
   revalidateMovementPaths();
 }
 
+export async function createFee(input: CreateFeeInput) {
+  const parsed = createFeeSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+
+  const movement = await createMovementRow({
+    type: "fee",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "debit",
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Taxa",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+    metadata: parsed.transfer_group_id
+      ? { transfer_group_id: parsed.transfer_group_id }
+      : {},
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
+export async function createCashback(input: CreateCashbackInput) {
+  const parsed = createCashbackSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+  const movementStatus = mapCashbackToMovementStatus(parsed.status);
+
+  const movement = await createMovementRow({
+    type: "cashback",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "credit",
+    status: movementStatus,
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Cashback",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+    metadata: { cashback_status: parsed.status },
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
+export async function createBonus(input: CreateBonusInput) {
+  const parsed = createBonusSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+  const movementStatus = mapBonusToMovementStatus(parsed.status);
+
+  const movement = await createMovementRow({
+    type: "bonus",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "credit",
+    status: movementStatus,
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Bônus",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+    metadata: {
+      bonus_status: parsed.status,
+      withdrawable: parsed.withdrawable,
+      bonus_type: parsed.bonus_type,
+      valid_until: parsed.valid_until,
+    },
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
+export async function createConversion(input: CreateConversionInput) {
+  const parsed = createConversionSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+
+  if (parsed.from_currency_id === parsed.to_currency_id) {
+    throw new Error("Moedas de origem e destino devem ser diferentes");
+  }
+
+  const fromCurrency = await getCurrencyRate(parsed.from_currency_id);
+  const toCurrency = await getCurrencyRate(parsed.to_currency_id);
+  const groupId = crypto.randomUUID();
+
+  const recalcPairs = [
+    {
+      accountId: parsed.account_id,
+      currencyId: parsed.from_currency_id,
+    },
+    {
+      accountId: parsed.account_id,
+      currencyId: parsed.to_currency_id,
+    },
+  ];
+
+  await createMovementRow({
+    type: "conversion",
+    account_id: parsed.account_id,
+    currency_id: parsed.from_currency_id,
+    amount: parsed.from_amount,
+    direction: "debit",
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? `Conversão ${fromCurrency.code} → ${toCurrency.code}`,
+    transfer_group_id: groupId,
+    exchange_rate: fromCurrency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.from_amount,
+      fromCurrency.code,
+      fromCurrency.last_rate_brl,
+    ),
+    metadata: {
+      to_currency_id: parsed.to_currency_id,
+      to_amount: parsed.to_amount,
+      quoted_rate: parsed.exchange_rate,
+    },
+  });
+
+  await createMovementRow({
+    type: "conversion",
+    account_id: parsed.account_id,
+    currency_id: parsed.to_currency_id,
+    amount: parsed.to_amount,
+    direction: "credit",
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? `Conversão ${fromCurrency.code} → ${toCurrency.code}`,
+    transfer_group_id: groupId,
+    exchange_rate: toCurrency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.to_amount,
+      toCurrency.code,
+      toCurrency.last_rate_brl,
+    ),
+    metadata: {
+      from_currency_id: parsed.from_currency_id,
+      from_amount: parsed.from_amount,
+      quoted_rate: parsed.exchange_rate,
+    },
+  });
+
+  if (parsed.fee_amount && parsed.fee_amount > 0) {
+    await createMovementRow({
+      type: "fee",
+      account_id: parsed.account_id,
+      currency_id: parsed.from_currency_id,
+      amount: parsed.fee_amount,
+      direction: "debit",
+      status: "completed",
+      occurred_at: parsed.occurred_at,
+      description: "Taxa de conversão",
+      transfer_group_id: groupId,
+      exchange_rate: fromCurrency.last_rate_brl,
+      amount_brl: calculateAmountBrl(
+        parsed.fee_amount,
+        fromCurrency.code,
+        fromCurrency.last_rate_brl,
+      ),
+      metadata: { conversion_group_id: groupId },
+    });
+    recalcPairs.push({
+      accountId: parsed.account_id,
+      currencyId: parsed.from_currency_id,
+    });
+  }
+
+  await recalculateBalancesForAccounts(recalcPairs);
+  revalidateMovementPaths();
+}
+
+export async function createBalanceAdjustment(
+  input: CreateBalanceAdjustmentInput,
+) {
+  const parsed = createBalanceAdjustmentSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+
+  const movement = await createMovementRow({
+    type: "balance_adjustment",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: parsed.direction,
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: `Ajuste: ${parsed.reason}`,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+    metadata: { reason: parsed.reason },
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
+export async function updateSimpleMovement(input: UpdateSimpleMovementInput) {
+  const parsed = updateSimpleMovementSchema.parse(input);
+  const supabase = await createClient();
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("movements")
+    .select("*")
+    .eq("id", parsed.id)
+    .single();
+
+  if (fetchError || !existing) throw new Error("Movimentação não encontrada");
+
+  const editableTypes = [
+    "fee",
+    "cashback",
+    "bonus",
+    "balance_adjustment",
+    "capital_deposit",
+    "capital_withdrawal",
+  ];
+  if (!editableTypes.includes(existing.type)) {
+    throw new Error("Este tipo de movimentação não pode ser editado");
+  }
+
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+
+  const { error } = await supabase
+    .from("movements")
+    .update({
+      account_id: parsed.account_id,
+      currency_id: parsed.currency_id,
+      amount: parsed.amount,
+      occurred_at: parsed.occurred_at,
+      description: parsed.description ?? existing.description,
+      status: parsed.status ?? existing.status,
+      exchange_rate: currency.last_rate_brl,
+      amount_brl: calculateAmountBrl(
+        parsed.amount,
+        currency.code,
+        currency.last_rate_brl,
+      ),
+      metadata: parsed.metadata ?? existing.metadata,
+    })
+    .eq("id", parsed.id);
+
+  if (error) throw new Error(error.message);
+
+  await recalculateBalancesForAccounts([
+    { accountId: existing.account_id, currencyId: existing.currency_id },
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+
+  revalidateMovementPaths();
+}
+
 export async function updateCapitalMovement(input: UpdateCapitalMovementInput) {
   const parsed = updateCapitalMovementSchema.parse(input);
   const supabase = await createClient();
@@ -522,6 +821,9 @@ export async function deleteMovement(id: string) {
   const { error } = await supabase.from("movements").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  await recalculateBalancesForAccounts(recalcPairs);
+  const uniqueRecalc = new Map(
+    recalcPairs.map((p) => [`${p.accountId}:${p.currencyId}`, p]),
+  );
+  await recalculateBalancesForAccounts([...uniqueRecalc.values()]);
   revalidateMovementPaths();
 }

@@ -7,6 +7,23 @@ export const movementStatusSchema = z.enum([
   "failed",
 ]);
 
+export const cashbackStatusSchema = z.enum([
+  "previsto",
+  "pendente",
+  "recebido",
+  "cancelado",
+  "expirado",
+]);
+
+export const bonusStatusSchema = z.enum([
+  "disponivel",
+  "pendente",
+  "creditado",
+  "utilizado",
+  "expirado",
+  "cancelado",
+]);
+
 export const capitalMovementSchema = z.object({
   account_id: z.string().uuid("Selecione uma conta"),
   currency_id: z.string().uuid("Selecione a moeda"),
@@ -20,6 +37,71 @@ export const createCapitalWithdrawalSchema = capitalMovementSchema;
 
 export const updateCapitalMovementSchema = capitalMovementSchema.extend({
   id: z.string().uuid(),
+});
+
+export const createFeeSchema = z.object({
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  amount: z.number().positive(),
+  occurred_at: z.string().min(1),
+  description: z.string().max(500).optional(),
+  transfer_group_id: z.string().uuid().optional(),
+  external_id: z.string().max(120).optional(),
+});
+
+export const createCashbackSchema = z.object({
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  amount: z.number().positive(),
+  occurred_at: z.string().min(1),
+  status: cashbackStatusSchema,
+  description: z.string().max(500).optional(),
+  external_id: z.string().max(120).optional(),
+});
+
+export const createBonusSchema = z.object({
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  amount: z.number().positive(),
+  occurred_at: z.string().min(1),
+  status: bonusStatusSchema,
+  withdrawable: z.boolean(),
+  bonus_type: z.string().max(80).optional(),
+  valid_until: z.string().optional(),
+  description: z.string().max(500).optional(),
+  external_id: z.string().max(120).optional(),
+});
+
+export const createConversionSchema = z.object({
+  account_id: z.string().uuid(),
+  from_currency_id: z.string().uuid(),
+  to_currency_id: z.string().uuid(),
+  from_amount: z.number().positive(),
+  to_amount: z.number().positive(),
+  exchange_rate: z.number().positive(),
+  fee_amount: z.number().min(0).optional(),
+  occurred_at: z.string().min(1),
+  description: z.string().max(500).optional(),
+});
+
+export const createBalanceAdjustmentSchema = z.object({
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  direction: z.enum(["credit", "debit"]),
+  amount: z.number().positive(),
+  reason: z.string().min(10, "Informe o motivo (mín. 10 caracteres)"),
+  occurred_at: z.string().min(1),
+});
+
+export const updateSimpleMovementSchema = z.object({
+  id: z.string().uuid(),
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  amount: z.number().positive(),
+  occurred_at: z.string().min(1),
+  description: z.string().max(500).optional(),
+  status: movementStatusSchema.optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const createTransferSchema = z
@@ -68,5 +150,29 @@ export type CreateCapitalWithdrawalInput = z.infer<
 export type UpdateCapitalMovementInput = z.infer<
   typeof updateCapitalMovementSchema
 >;
+export type CreateFeeInput = z.infer<typeof createFeeSchema>;
+export type CreateCashbackInput = z.infer<typeof createCashbackSchema>;
+export type CreateBonusInput = z.infer<typeof createBonusSchema>;
+export type CreateConversionInput = z.infer<typeof createConversionSchema>;
+export type CreateBalanceAdjustmentInput = z.infer<
+  typeof createBalanceAdjustmentSchema
+>;
+export type UpdateSimpleMovementInput = z.infer<typeof updateSimpleMovementSchema>;
 export type CreateTransferInput = z.infer<typeof createTransferSchema>;
 export type ConfirmTransferInput = z.infer<typeof confirmTransferSchema>;
+
+export function mapCashbackToMovementStatus(
+  status: z.infer<typeof cashbackStatusSchema>,
+): z.infer<typeof movementStatusSchema> {
+  if (status === "recebido") return "completed";
+  if (status === "cancelado" || status === "expirado") return "cancelled";
+  return "pending";
+}
+
+export function mapBonusToMovementStatus(
+  status: z.infer<typeof bonusStatusSchema>,
+): z.infer<typeof movementStatusSchema> {
+  if (status === "creditado" || status === "utilizado") return "completed";
+  if (status === "expirado" || status === "cancelado") return "cancelled";
+  return "pending";
+}

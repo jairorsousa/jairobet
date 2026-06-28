@@ -15,7 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createTransfer } from "@/features/movements/actions";
+import {
+  createTransfer,
+  hasDuplicateExternalId,
+} from "@/features/movements/actions";
 import type { CreateTransferInput } from "@/features/movements/schemas";
 import { formatMoney } from "@/shared/lib/money/format";
 import type { AccountWithDetails } from "@/shared/types/database";
@@ -83,6 +86,12 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
 
     setLoading(true);
     try {
+      if (form.external_id) {
+        const dup = await hasDuplicateExternalId(form.external_id);
+        if (dup) {
+          toast.warning("Já existe lançamento com este identificador");
+        }
+      }
       await createTransfer({
         from_account_id: form.from_account_id,
         from_currency_id: form.from_currency_id,

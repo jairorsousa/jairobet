@@ -17,3 +17,30 @@ export const movementStatusLabels: Record<string, string> = {
   cancelled: "Cancelada",
   failed: "Falhou",
 };
+
+export const movementTypeColors: Record<
+  MovementType,
+  { bg: string; text: string }
+> = {
+  capital_deposit: { bg: "bg-success/15", text: "text-success" },
+  capital_withdrawal: { bg: "bg-destructive/15", text: "text-destructive" },
+  transfer: { bg: "bg-accent/15", text: "text-accent" },
+  conversion: { bg: "bg-accent/15", text: "text-accent" },
+  cashback: { bg: "bg-primary/15", text: "text-primary" },
+  bonus: { bg: "bg-primary/15", text: "text-primary" },
+  fee: { bg: "bg-destructive/15", text: "text-destructive" },
+  balance_adjustment: { bg: "bg-muted", text: "text-muted-foreground" },
+};
+
+export const newMovementOptions: Array<{
+  value: MovementType | "capital_deposit" | "capital_withdrawal";
+  label: string;
+}> = [
+  { value: "capital_deposit", label: "Aporte" },
+  { value: "capital_withdrawal", label: "Retirada" },
+  { value: "fee", label: "Taxa" },
+  { value: "cashback", label: "Cashback" },
+  { value: "bonus", label: "Bônus" },
+  { value: "conversion", label: "Conversão" },
+  { value: "balance_adjustment", label: "Ajuste de saldo" },
+];

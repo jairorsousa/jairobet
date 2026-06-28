@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  Coins,
+  Gift,
+  Pencil,
+  Percent,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -17,16 +27,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { deleteMovement } from "@/features/movements/actions";
 import { CapitalMovementDialog } from "@/features/movements/components/capital-movement-dialog";
+import { SimpleMovementEditDialog } from "@/features/movements/components/simple-movement-edit-dialog";
 import {
   movementStatusLabels,
+  movementTypeColors,
   movementTypeLabels,
 } from "@/shared/lib/domain/movement-labels";
 import { formatMoney } from "@/shared/lib/money/format";
 import type {
   AccountWithDetails,
+  MovementType,
   MovementWithDetails,
 } from "@/shared/types/database";
 import { cn } from "@/lib/utils";
+
+const typeIcons: Partial<Record<MovementType, React.ReactNode>> = {
+  transfer: <ArrowLeftRight className="size-4" />,
+  conversion: <Coins className="size-4" />,
+  cashback: <Percent className="size-4" />,
+  bonus: <Gift className="size-4" />,
+  fee: <ArrowUpRight className="size-4" />,
+  balance_adjustment: <Wrench className="size-4" />,
+};
 
 interface MovementRowProps {
   movement: MovementWithDetails;
@@ -36,14 +58,29 @@ interface MovementRowProps {
 
 export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps) {
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editingCapital, setEditingCapital] = useState(false);
+  const [editingSimple, setEditingSimple] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isCredit = movement.direction === "credit";
   const isPending = movement.status === "pending";
-  const canEdit = ["capital_deposit", "capital_withdrawal"].includes(
+  const typeColor = movementTypeColors[movement.type];
+
+  const canEditCapital = ["capital_deposit", "capital_withdrawal"].includes(
     movement.type,
   );
+  const canEditSimple = ["fee", "cashback", "bonus", "balance_adjustment"].includes(
+    movement.type,
+  );
+
+  const amountColor =
+    movement.type === "fee"
+      ? "text-destructive"
+      : isPending && isCredit
+        ? "text-warning"
+        : isCredit
+          ? "text-success"
+          : "text-destructive";
 
   async function handleDelete() {
     setLoading(true);
@@ -65,14 +102,16 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
         <div
           className={cn(
             "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg",
-            isCredit ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+            typeColor.bg,
+            typeColor.text,
           )}
         >
-          {isCredit ? (
-            <ArrowDownLeft className="size-4" />
-          ) : (
-            <ArrowUpRight className="size-4" />
-          )}
+          {typeIcons[movement.type] ??
+            (isCredit ? (
+              <ArrowDownLeft className="size-4" />
+            ) : (
+              <ArrowUpRight className="size-4" />
+            ))}
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -92,6 +131,13 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
                 {movementStatusLabels[movement.status]}
               </Badge>
             )}
+            {movement.type === "bonus" &&
+              (movement.metadata as Record<string, unknown>)?.withdrawable ===
+                true && (
+                <Badge variant="outline" className="text-xs">
+                  Retirável
+                </Badge>
+              )}
           </div>
           <p className="text-sm text-muted-foreground">
             {movement.description ?? "—"} · {movement.account.holder.name}
@@ -103,12 +149,7 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
           </p>
         </div>
         <div className="text-right">
-          <p
-            className={cn(
-              "font-medium",
-              isCredit ? "text-success" : "text-destructive",
-            )}
-          >
+          <p className={cn("font-medium", amountColor)}>
             {isCredit ? "+" : "−"}
             {formatMoney(
               movement.amount,
@@ -120,12 +161,16 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
             {formatMoney(movement.amount_brl, "BRL")}
           </p>
           <div className="mt-2 flex justify-end gap-1">
-            {canEdit && (
+            {(canEditCapital || canEditSimple) && (
               <Button
                 variant="ghost"
                 size="icon-xs"
                 aria-label="Editar"
-                onClick={() => setEditing(true)}
+                onClick={() =>
+                  canEditCapital
+                    ? setEditingCapital(true)
+                    : setEditingSimple(true)
+                }
               >
                 <Pencil className="size-3.5" />
               </Button>
@@ -142,15 +187,25 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
         </div>
       </div>
 
-      {canEdit && (
+      {canEditCapital && (
         <CapitalMovementDialog
-          open={editing}
-          onOpenChange={setEditing}
+          open={editingCapital}
+          onOpenChange={setEditingCapital}
           mode={
             movement.type === "capital_withdrawal" ? "withdrawal" : "deposit"
           }
           accounts={accounts}
           movement={movement}
+          onSuccess={onRefresh}
+        />
+      )}
+
+      {canEditSimple && (
+        <SimpleMovementEditDialog
+          open={editingSimple}
+          onOpenChange={setEditingSimple}
+          movement={movement}
+          accounts={accounts}
           onSuccess={onRefresh}
         />
       )}
@@ -161,6 +216,8 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
             <AlertDialogTitle>Excluir movimentação?</AlertDialogTitle>
             <AlertDialogDescription>
               O saldo da conta será recalculado automaticamente.
+              {movement.transfer_group_id &&
+                " Lançamentos vinculados também serão removidos."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
