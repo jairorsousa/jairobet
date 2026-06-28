@@ -21,6 +21,10 @@ import {
   type ConfirmTransferInput,
 } from "@/features/movements/schemas";
 import { formatMoney } from "@/shared/lib/money/format";
+import {
+  resolveTransferKind,
+  transferKindLabels,
+} from "@/shared/lib/domain/transfer-labels";
 import type { PendingTransfer } from "@/shared/types/database";
 
 interface ConfirmTransferDialogProps {
@@ -74,6 +78,7 @@ export function ConfirmTransferDialog({
         <DialogHeader>
           <DialogTitle>Confirmar recebimento</DialogTitle>
           <DialogDescription>
+            {transferKindLabels[resolveTransferKind(metadata)]} ·{" "}
             {transfer.account.name} → {transfer.counter_account?.name}
           </DialogDescription>
         </DialogHeader>

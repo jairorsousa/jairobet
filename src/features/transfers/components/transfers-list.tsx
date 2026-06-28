@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmTransferDialog } from "@/features/transfers/components/confirm-transfer-dialog";
 import { formatMoney } from "@/shared/lib/money/format";
+import {
+  resolveTransferKind,
+  transferKindLabels,
+} from "@/shared/lib/domain/transfer-labels";
 import type { PendingTransfer } from "@/shared/types/database";
 
 interface TransfersListProps {
@@ -40,13 +44,15 @@ export function TransfersList({ transfers: initial }: TransfersListProps) {
         {transfers.map((transfer) => {
           const metadata = transfer.metadata as Record<string, unknown>;
           const expected = metadata.expected_received as number | undefined;
+          const kind = resolveTransferKind(metadata);
 
           return (
             <Card key={transfer.id} className="glass-card border-border/50">
               <CardHeader className="flex flex-row items-start justify-between pb-2">
                 <div>
                   <CardTitle className="text-base">
-                    {transfer.account.name} → {transfer.counter_account?.name}
+                    {transferKindLabels[kind]} · {transfer.account.name} →{" "}
+                    {transfer.counter_account?.name}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {transfer.account.holder.name}

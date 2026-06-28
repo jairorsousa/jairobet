@@ -21,6 +21,10 @@ import {
 } from "@/features/movements/actions";
 import type { CreateTransferInput } from "@/features/movements/schemas";
 import { formatMoney } from "@/shared/lib/money/format";
+import {
+  transferKindLabels,
+  transferKindOptions,
+} from "@/shared/lib/domain/transfer-labels";
 import type { AccountWithDetails } from "@/shared/types/database";
 
 const STEPS = ["Origem", "Destino", "Valores", "Detalhes", "Confirmar"];
@@ -35,6 +39,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState<Partial<CreateTransferInput>>({
+    kind: "transfer",
     status: "pending",
     occurred_at: new Date().toISOString().slice(0, 10),
     sent_amount: 0,
@@ -72,6 +77,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
 
   async function handleSubmit() {
     if (
+      !form.kind ||
       !form.from_account_id ||
       !form.from_currency_id ||
       !form.to_account_id ||
@@ -93,6 +99,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
         }
       }
       await createTransfer({
+        kind: form.kind,
         from_account_id: form.from_account_id,
         from_currency_id: form.from_currency_id,
         to_account_id: form.to_account_id,
@@ -103,7 +110,6 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
         fee_amount: form.fee_amount,
         status: form.status,
         occurred_at: form.occurred_at,
-        method: form.method,
         external_id: form.external_id,
         description: form.description,
       });
@@ -141,6 +147,27 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
           <CardTitle>{STEPS[step]}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select
+              value={form.kind ?? "transfer"}
+              onValueChange={(v) =>
+                v && updateField("kind", v as CreateTransferInput["kind"])
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {transferKindOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {step === 0 && (
             <>
               <div className="space-y-2">
@@ -341,14 +368,6 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Método</Label>
-                <Input
-                  placeholder="Pix, TED, TRC20…"
-                  value={form.method ?? ""}
-                  onChange={(e) => updateField("method", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>ID da transação (opcional)</Label>
                 <Input
                   value={form.external_id ?? ""}
@@ -368,6 +387,10 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
 
           {step === 4 && (
             <div className="space-y-3 text-sm">
+              <p>
+                <span className="text-muted-foreground">Tipo: </span>
+                {transferKindLabels[form.kind ?? "transfer"]}
+              </p>
               <p>
                 <span className="text-muted-foreground">De: </span>
                 {fromAccount?.name} ({fromCurrency?.code})

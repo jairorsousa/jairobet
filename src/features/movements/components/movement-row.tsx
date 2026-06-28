@@ -36,6 +36,10 @@ import {
   movementTypeColors,
   movementTypeLabels,
 } from "@/shared/lib/domain/movement-labels";
+import {
+  resolveTransferKind,
+  transferKindLabels,
+} from "@/shared/lib/domain/transfer-labels";
 import { formatMoney } from "@/shared/lib/money/format";
 import type {
   AccountWithDetails,
@@ -71,6 +75,12 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
   const isCredit = movement.direction === "credit";
   const isPending = movement.status === "pending";
   const typeColor = movementTypeColors[movement.type];
+  const typeLabel =
+    movement.type === "transfer"
+      ? transferKindLabels[
+          resolveTransferKind(movement.metadata as Record<string, unknown>)
+        ]
+      : movementTypeLabels[movement.type];
 
   const canEditCapital = ["capital_deposit", "capital_withdrawal"].includes(
     movement.type,
@@ -127,9 +137,7 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">
-              {movementTypeLabels[movement.type]}
-            </span>
+            <span className="font-medium">{typeLabel}</span>
             <Badge variant="outline" className="text-xs">
               {movement.account.name}
             </Badge>

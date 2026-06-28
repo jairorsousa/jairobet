@@ -36,6 +36,10 @@ import {
   type UpdateSimpleMovementInput,
 } from "@/features/movements/schemas";
 import { calculateAmountBrl } from "@/shared/lib/domain/balance";
+import {
+  formatTransferDescription,
+  resolveTransferKind,
+} from "@/shared/lib/domain/transfer-labels";
 import { getOperatorId } from "@/shared/lib/auth/get-operator";
 import { createClient } from "@/shared/lib/supabase/server";
 import type {
@@ -390,7 +394,11 @@ export async function createTransfer(input: CreateTransferInput) {
     occurred_at: parsed.occurred_at,
     description:
       parsed.description ??
-      `Transferência → ${toAccount?.name ?? "destino"}`,
+      formatTransferDescription(
+        parsed.kind,
+        "debit",
+        toAccount?.name ?? "destino",
+      ),
     external_id: parsed.external_id,
     transfer_group_id: transferGroupId,
     exchange_rate: fromCurrency.last_rate_brl,
@@ -400,7 +408,7 @@ export async function createTransfer(input: CreateTransferInput) {
       fromCurrency.last_rate_brl,
     ),
     metadata: {
-      method: parsed.method,
+      transfer_kind: parsed.kind,
       expected_received: parsed.expected_received_amount,
       fee_amount: parsed.fee_amount,
       to_currency_id: parsed.to_currency_id,
@@ -424,7 +432,11 @@ export async function createTransfer(input: CreateTransferInput) {
       direction: "credit",
       status: "completed",
       occurred_at: parsed.occurred_at,
-      description: `Transferência ← ${fromAccount?.name ?? "origem"}`,
+      description: formatTransferDescription(
+        parsed.kind,
+        "credit",
+        fromAccount?.name ?? "origem",
+      ),
       external_id: parsed.external_id,
       transfer_group_id: transferGroupId,
       exchange_rate: toCurrency.last_rate_brl,
@@ -433,7 +445,7 @@ export async function createTransfer(input: CreateTransferInput) {
         toCurrency.code,
         toCurrency.last_rate_brl,
       ),
-      metadata: { method: parsed.method },
+      metadata: { transfer_kind: parsed.kind },
     });
     recalcPairs.push({
       accountId: parsed.to_account_id,
@@ -486,7 +498,11 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
     direction: "credit",
     status: "completed",
     occurred_at: parsed.occurred_at ?? debit.occurred_at,
-    description: `Transferência ← ${fromAccount?.name ?? "origem"}`,
+    description: formatTransferDescription(
+      resolveTransferKind(metadata),
+      "credit",
+      fromAccount?.name ?? "origem",
+    ),
     external_id: debit.external_id,
     transfer_group_id: parsed.transfer_group_id,
     exchange_rate: toCurrency.last_rate_brl,
@@ -495,6 +511,9 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
       toCurrency.code,
       toCurrency.last_rate_brl,
     ),
+    metadata: {
+      transfer_kind: resolveTransferKind(metadata),
+    },
   });
 
   await supabase

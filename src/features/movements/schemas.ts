@@ -126,8 +126,16 @@ export const updateSimpleMovementSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+export const transferKindSchema = z.enum([
+  "transfer",
+  "exchange",
+  "deposit",
+  "withdrawal",
+]);
+
 export const createTransferSchema = z
   .object({
+    kind: transferKindSchema,
     from_account_id: z.string().uuid(),
     from_currency_id: z.string().uuid(),
     to_account_id: z.string().uuid(),
@@ -138,7 +146,6 @@ export const createTransferSchema = z
     fee_amount: z.number().min(0).optional(),
     status: movementStatusSchema,
     occurred_at: z.string().min(1),
-    method: z.string().max(80).optional(),
     external_id: z.string().max(120).optional(),
     description: z.string().max(500).optional(),
   })
@@ -183,6 +190,7 @@ export type CreateBalanceAdjustmentInput = z.infer<
   typeof createBalanceAdjustmentSchema
 >;
 export type UpdateSimpleMovementInput = z.infer<typeof updateSimpleMovementSchema>;
+export type TransferKind = z.infer<typeof transferKindSchema>;
 export type CreateTransferInput = z.infer<typeof createTransferSchema>;
 export type ConfirmTransferInput = z.infer<typeof confirmTransferSchema>;
 
