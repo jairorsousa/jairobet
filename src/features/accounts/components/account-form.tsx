@@ -131,6 +131,7 @@ export function AccountForm({
   const isCrypto = accountType === "crypto";
   const isBetting = accountType === "betting";
   const isBank = accountType === "bank";
+  const supportsMultiCurrency = isCrypto || isBetting;
 
   useEffect(() => {
     if (isEditing) return;
@@ -194,7 +195,7 @@ export function AccountForm({
     form.setValue("crypto_broker_id", undefined);
     form.setValue("betting_house_id", undefined);
     form.setValue("institution", "");
-    if (type !== "crypto") {
+    if (type !== "crypto" && type !== "betting") {
       const currencyId = brlCurrency?.id ?? currencies[0]?.id ?? "";
       form.setValue("currency_balances", [
         { currency_id: currencyId, initial_balance: 0 },
@@ -414,7 +415,7 @@ export function AccountForm({
       <Card className="glass-card border-border/50">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Saldos iniciais</CardTitle>
-          {isCrypto && (
+          {supportsMultiCurrency && (
             <Button
               type="button"
               variant="outline"
@@ -445,7 +446,7 @@ export function AccountForm({
                     form.setValue(`currency_balances.${index}.currency_id`, v);
                     if (index === 0) form.setValue("default_currency_id", v);
                   }}
-                  disabled={!isCrypto}
+                  disabled={!supportsMultiCurrency}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -470,7 +471,7 @@ export function AccountForm({
                   })}
                 />
               </div>
-              {isCrypto && fields.length > 1 && (
+              {supportsMultiCurrency && fields.length > 1 && (
                 <Button
                   type="button"
                   variant="ghost"
