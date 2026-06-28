@@ -183,6 +183,28 @@ export const confirmTransferSchema = z.object({
   occurred_at: z.string().min(1).optional(),
 });
 
+export const updateTransferSchema = z
+  .object({
+    transfer_group_id: z.string().uuid(),
+    sent_amount: z.number().positive(),
+    expected_received_amount: z.number().positive().optional(),
+    received_amount: z.number().positive().optional(),
+    fee_amount: z.number().min(0).optional(),
+    status: z.enum(["pending", "completed"]),
+    occurred_at: z.string().min(1),
+    external_id: z.string().max(120).optional(),
+    description: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.status === "completed" && !data.received_amount) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Informe o valor recebido para transferência concluída",
+        path: ["received_amount"],
+      });
+    }
+  });
+
 export type CreateCapitalDepositInput = z.infer<typeof createCapitalDepositSchema>;
 export type CreateCapitalWithdrawalInput = z.infer<
   typeof createCapitalWithdrawalSchema
@@ -204,6 +226,7 @@ export type UpdateSimpleMovementInput = z.infer<typeof updateSimpleMovementSchem
 export type TransferKind = z.infer<typeof transferKindSchema>;
 export type CreateTransferInput = z.infer<typeof createTransferSchema>;
 export type ConfirmTransferInput = z.infer<typeof confirmTransferSchema>;
+export type UpdateTransferInput = z.infer<typeof updateTransferSchema>;
 
 export function mapCashbackToMovementStatus(
   status: z.infer<typeof cashbackStatusSchema>,

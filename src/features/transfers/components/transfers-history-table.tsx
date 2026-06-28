@@ -1,10 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmTransferDialog } from "@/features/transfers/components/confirm-transfer-dialog";
+import { EditTransferDialog } from "@/features/transfers/components/edit-transfer-dialog";
+import { deleteMovement } from "@/features/movements/actions";
 import { formatMoney } from "@/shared/lib/money/format";
 import {
   formatTransferTitle,
@@ -45,8 +58,15 @@ export function TransfersHistoryTable({
 }: TransfersHistoryTableProps) {
   const [transfers, setTransfers] = useState(initial);
   const [confirming, setConfirming] = useState<PendingTransfer | null>(null);
+  const [editing, setEditing] = useState<TransferRecord | null>(null);
+  const [deleting, setDeleting] = useState<TransferRecord | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSuccess() {
+  function handleRefresh() {
+    window.location.reload();
+  }
+
+  function handleConfirmSuccess() {
     if (confirming) {
       setTransfers((prev) =>
         prev.map((transfer) =>
@@ -56,7 +76,26 @@ export function TransfersHistoryTable({
         ),
       );
     }
-    window.location.reload();
+    handleRefresh();
+  }
+
+  async function handleDelete() {
+    if (!deleting) return;
+
+    setLoading(true);
+    try {
+      await deleteMovement(deleting.id);
+      toast.success("Transferência excluída");
+      setTransfers((prev) =>
+        prev.filter((transfer) => transfer.id !== deleting.id),
+      );
+      setDeleting(null);
+      handleRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao excluir");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (transfers.length === 0) {
@@ -70,7 +109,7 @@ export function TransfersHistoryTable({
   return (
     <>
       <div className="overflow-x-auto rounded-lg border border-border/50">
-        <table className="w-full min-w-[960px] text-sm">
+        <table className="w-full min-w-[1040px] text-sm">
           <thead className="bg-muted/40 text-left text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Data</th>
@@ -79,7 +118,7 @@ export function TransfersHistoryTable({
               <th className="px-4 py-3 font-medium text-right">Enviado</th>
               <th className="px-4 py-3 font-medium text-right">Recebido</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Ação</th>
+              <th className="px-4 py-3 font-medium text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -164,16 +203,34 @@ export function TransfersHistoryTable({
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {transfer.status === "pending" ? (
+                    <div className="flex items-center justify-end gap-1">
+                      {transfer.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setConfirming(transfer)}
+                        >
+                          <CheckCircle2 className="size-4" />
+                          Confirmar
+                        </Button>
+                      )}
                       <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setConfirming(transfer)}
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Editar"
+                        onClick={() => setEditing(transfer)}
                       >
-                        <CheckCircle2 className="size-4" />
-                        Confirmar
+                        <Pencil className="size-3.5" />
                       </Button>
-                    ) : null}
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Excluir"
+                        onClick={() => setDeleting(transfer)}
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -186,8 +243,40 @@ export function TransfersHistoryTable({
         transfer={confirming}
         open={!!confirming}
         onOpenChange={(open) => !open && setConfirming(null)}
-        onSuccess={handleSuccess}
+        onSuccess={handleConfirmSuccess}
       />
+
+      <EditTransferDialog
+        transfer={editing}
+        open={!!editing}
+        onOpenChange={(open) => !open && setEditing(null)}
+        onSuccess={handleRefresh}
+      />
+
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir transferência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O débito e o crédito vinculados serão removidos e os saldos das
+              contas serão recalculados automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={loading}
+              onClick={handleDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
