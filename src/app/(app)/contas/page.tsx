@@ -14,6 +14,7 @@ interface ContasPageProps {
     type?: string;
     holder?: string;
     status?: string;
+    with_balance?: string;
   }>;
 }
 
@@ -21,10 +22,13 @@ export default async function ContasPage({ searchParams }: ContasPageProps) {
   const params = await searchParams;
   const holders = await listHolders();
 
+  const withBalanceOnly = params.with_balance === "1";
+
   const accounts = await listAccounts({
     type: (params.type as AccountType | undefined) ?? "all",
     holder_id: params.holder ?? "all",
     status: (params.status as AccountStatus | undefined) ?? "all",
+    with_balance: withBalanceOnly,
   });
 
   return (
@@ -49,7 +53,8 @@ export default async function ContasPage({ searchParams }: ContasPageProps) {
                 Contas
               </h2>
               <p className="text-muted-foreground">
-                {accounts.length} conta{accounts.length !== 1 ? "s" : ""} cadastrada
+                {accounts.length} conta{accounts.length !== 1 ? "s" : ""}
+                {withBalanceOnly ? " com saldo" : " cadastrada"}
                 {accounts.length !== 1 ? "s" : ""}
               </p>
             </div>
@@ -63,7 +68,9 @@ export default async function ContasPage({ searchParams }: ContasPageProps) {
             <div className="glass-card rounded-xl border border-border/50 p-12 text-center">
               <Wallet className="mx-auto size-10 text-muted-foreground" />
               <p className="mt-3 text-muted-foreground">
-                Nenhuma conta encontrada. Cadastre um titular e crie a primeira conta.
+                {withBalanceOnly
+                  ? "Nenhuma conta com saldo encontrada com os filtros selecionados."
+                  : "Nenhuma conta encontrada. Cadastre um titular e crie a primeira conta."}
               </p>
               <Link href="/contas/nova">
                 <Button className="mt-4">

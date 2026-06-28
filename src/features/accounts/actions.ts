@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { recalculateBalance } from "@/shared/lib/domain/balance";
+import {
+  accountHasBalance,
+  recalculateBalance,
+} from "@/shared/lib/domain/balance";
 import { getOperatorId } from "@/shared/lib/auth/get-operator";
 import { createClient } from "@/shared/lib/supabase/server";
 import type {
@@ -21,6 +24,7 @@ export interface ListAccountsFilters {
   type?: AccountType | "all";
   holder_id?: string | "all";
   status?: AccountStatus | "all";
+  with_balance?: boolean;
 }
 
 async function fetchAccountWithDetails(
@@ -79,7 +83,14 @@ export async function listAccounts(
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as AccountWithDetails[];
+
+  let accounts = (data ?? []) as unknown as AccountWithDetails[];
+
+  if (filters.with_balance) {
+    accounts = accounts.filter(accountHasBalance);
+  }
+
+  return accounts;
 }
 
 export async function getAccount(id: string): Promise<AccountWithDetails> {

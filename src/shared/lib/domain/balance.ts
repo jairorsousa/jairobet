@@ -30,6 +30,14 @@ export function recalculateBalance(
   return new Decimal(initialBalance).plus(movementsNet).toNumber();
 }
 
+export function accountHasBalance(account: {
+  balances: Array<{ calculated_balance: number }>;
+  pending_balance?: number;
+}): boolean {
+  if ((account.pending_balance ?? 0) > 0) return true;
+  return account.balances.some((balance) => balance.calculated_balance !== 0);
+}
+
 export function sumBalancesInBrl(
   balances: Array<{ calculated_balance: number; currency: { last_rate_brl: number } }>,
 ): number {

@@ -33,8 +33,20 @@ export function AccountsFilters({ holders }: AccountsFiltersProps) {
     router.push(`/contas?${params.toString()}`);
   }
 
+  const withBalanceOnly = searchParams.get("with_balance") === "1";
+
+  function toggleWithBalance(checked: boolean) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set("with_balance", "1");
+    } else {
+      params.delete("with_balance");
+    }
+    router.push(`/contas?${params.toString()}`);
+  }
+
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="space-y-2">
         <Label>Tipo</Label>
         <Select
@@ -91,6 +103,18 @@ export function AccountsFilters({ holders }: AccountsFiltersProps) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Saldo</Label>
+        <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-colors hover:bg-muted/40">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-input accent-primary"
+            checked={withBalanceOnly}
+            onChange={(e) => toggleWithBalance(e.target.checked)}
+          />
+          Apenas com saldo
+        </label>
       </div>
     </div>
   );
