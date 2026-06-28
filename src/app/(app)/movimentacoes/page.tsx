@@ -58,7 +58,9 @@ export default async function MovimentacoesPage({
             <MovementsFilters holders={holders} accounts={accounts} />
           </Suspense>
 
-          <MovementsPageClient movements={movements} accounts={accounts} />
+          <Suspense fallback={<div className="h-32 animate-pulse rounded-lg bg-muted" />}>
+            <MovementsPageClient movements={movements} accounts={accounts} />
+          </Suspense>
         </div>
       </PageContainer>
     </>

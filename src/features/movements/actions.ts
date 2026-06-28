@@ -193,6 +193,54 @@ export async function listMovements(
   return { items, total: count ?? items.length };
 }
 
+export async function listAllMovements(
+  filters: ListMovementsFilters = {},
+): Promise<MovementWithDetails[]> {
+  const supabase = await createClient();
+  const pageSize = 1000;
+  const all: MovementWithDetails[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from("movements")
+      .select(MOVEMENT_SELECT)
+      .order("occurred_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (filters.type && filters.type !== "all") {
+      query = query.eq("type", filters.type);
+    }
+    if (filters.account_id && filters.account_id !== "all") {
+      query = query.eq("account_id", filters.account_id);
+    }
+    if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
+    if (filters.from_date) {
+      query = query.gte("occurred_at", filters.from_date);
+    }
+    if (filters.to_date) {
+      query = query.lte("occurred_at", filters.to_date);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    if (!data?.length) break;
+
+    all.push(...(data as unknown as MovementWithDetails[]));
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  if (filters.holder_id && filters.holder_id !== "all") {
+    return all.filter((m) => m.account.holder_id === filters.holder_id);
+  }
+
+  return all;
+}
+
 export async function listAccountMovements(
   accountId: string,
   limit = 50,
