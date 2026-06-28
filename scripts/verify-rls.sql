@@ -22,3 +22,20 @@ WHERE n.nspname = 'public'
 ORDER BY c.relname;
 
 -- Esperado: rls_enabled = true e policy_count >= 1 em todas as linhas
+
+-- Grants para authenticated
+SELECT
+  table_name,
+  privilege_type
+FROM information_schema.role_table_grants
+WHERE grantee = 'authenticated'
+  AND table_schema = 'public'
+  AND table_name IN (
+    'holders',
+    'accounts',
+    'account_currencies',
+    'movements',
+    'reconciliations',
+    'currencies'
+  )
+ORDER BY table_name, privilege_type;
