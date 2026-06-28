@@ -121,6 +121,7 @@ export type MovementType =
   | "transfer"
   | "conversion"
   | "cashback"
+  | "rakeback"
   | "bonus"
   | "fee"
   | "balance_adjustment";

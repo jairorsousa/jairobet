@@ -33,6 +33,7 @@ import {
   createCashback,
   createConversion,
   createFee,
+  createRakeback,
   hasDuplicateExternalId,
 } from "@/features/movements/actions";
 import {
@@ -42,6 +43,7 @@ import {
   createCashbackSchema,
   createConversionSchema,
   createFeeSchema,
+  createRakebackSchema,
 } from "@/features/movements/schemas";
 import { newMovementOptions } from "@/shared/lib/domain/movement-labels";
 import type { AccountWithDetails } from "@/shared/types/database";
@@ -176,6 +178,19 @@ export function NewMovementDialog({
     },
   });
 
+  const rakebackForm = useForm({
+    resolver: zodResolver(createRakebackSchema),
+    defaultValues: {
+      account_id: "",
+      currency_id: "",
+      amount: 0,
+      occurred_at: new Date().toISOString().slice(0, 10),
+      status: "pendente" as const,
+      description: "",
+      external_id: "",
+    },
+  });
+
   const bonusForm = useForm({
     resolver: zodResolver(createBonusSchema),
     defaultValues: {
@@ -268,6 +283,13 @@ export function NewMovementDialog({
           await warnDuplicate(values.external_id);
           await createCashback(values);
           toast.success("Cashback registrado");
+          break;
+        }
+        case "rakeback": {
+          const values = createRakebackSchema.parse(rakebackForm.getValues());
+          await warnDuplicate(values.external_id);
+          await createRakeback(values);
+          toast.success("Rakeback registrado");
           break;
         }
         case "bonus": {
@@ -470,6 +492,63 @@ export function NewMovementDialog({
                 <div className="space-y-2">
                   <Label>Data</Label>
                   <Input type="date" {...cashbackForm.register("occurred_at")} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {formType === "rakeback" && (
+            <>
+              <AccountCurrencySelect
+                accounts={accounts}
+                accountId={rakebackForm.watch("account_id")}
+                currencyId={rakebackForm.watch("currency_id")}
+                onAccountChange={(accountId, defaultCurrencyId) => {
+                  rakebackForm.setValue("account_id", accountId);
+                  rakebackForm.setValue("currency_id", defaultCurrencyId);
+                }}
+                onCurrencyChange={(currencyId) =>
+                  rakebackForm.setValue("currency_id", currencyId)
+                }
+                accountFilter={(a) => a.type === "betting"}
+              />
+              {bettingAccounts.length === 0 && (
+                <p className="text-sm text-warning">
+                  Cadastre uma conta de casa de apostas primeiro.
+                </p>
+              )}
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={rakebackForm.watch("status")}
+                  onValueChange={(v) =>
+                    v && rakebackForm.setValue("status", v as "pendente")
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="previsto">Previsto</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="recebido">Recebido</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                    <SelectItem value="expirado">Expirado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Valor</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    {...rakebackForm.register("amount", { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data</Label>
+                  <Input type="date" {...rakebackForm.register("occurred_at")} />
                 </div>
               </div>
             </>

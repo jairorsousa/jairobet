@@ -45,6 +45,7 @@ export interface ResultReport {
   roi: number | null;
   fees: number;
   cashback: number;
+  rakeback: number;
   bonuses: number;
 }
 
@@ -59,6 +60,7 @@ export interface AccountReportRow {
   deposits: number;
   withdrawals: number;
   cashback: number;
+  rakeback: number;
   bonuses: number;
   fees: number;
   result: number;
@@ -218,6 +220,17 @@ export function buildResultReport(
     .reduce((sum, m) => sum.plus(m.amount_brl), new Decimal(0))
     .toNumber();
 
+  const rakeback = movements
+    .filter(
+      (m) =>
+        m.type === "rakeback" &&
+        m.status === "completed" &&
+        m.direction === "credit" &&
+        inPeriod(m.occurred_at, period),
+    )
+    .reduce((sum, m) => sum.plus(m.amount_brl), new Decimal(0))
+    .toNumber();
+
   const bonuses = movements
     .filter(
       (m) =>
@@ -241,6 +254,7 @@ export function buildResultReport(
     roi: calculateROI(accumulatedResult, endNetCapital),
     fees,
     cashback,
+    rakeback,
     bonuses,
   };
 }
@@ -285,6 +299,12 @@ export function buildAccountReportRows(
         period,
         "cashback",
       );
+      const rakeback = sumTypeInPeriod(
+        movements,
+        account.id,
+        period,
+        "rakeback",
+      );
       const bonuses = sumTypeInPeriod(movements, account.id, period, "bonus");
       const fees = sumTypeInPeriod(movements, account.id, period, "fee");
 
@@ -299,6 +319,7 @@ export function buildAccountReportRows(
         deposits,
         withdrawals,
         cashback,
+        rakeback,
         bonuses,
         fees,
         result: calculatePlatformResult({
@@ -307,6 +328,7 @@ export function buildAccountReportRows(
           depositsBrl: deposits,
           withdrawalsBrl: withdrawals,
           cashbackBrl: cashback,
+          rakebackBrl: rakeback,
           bonusesBrl: bonuses,
           feesBrl: fees,
         }),

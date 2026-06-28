@@ -96,6 +96,7 @@ export interface PlatformResultInput {
   depositsBrl: number;
   withdrawalsBrl: number;
   cashbackBrl: number;
+  rakebackBrl?: number;
   bonusesBrl: number;
   feesBrl: number;
 }
@@ -106,6 +107,7 @@ export function calculatePlatformResult(input: PlatformResultInput): number {
     .minus(input.depositsBrl)
     .plus(input.withdrawalsBrl)
     .plus(input.cashbackBrl)
+    .plus(input.rakebackBrl ?? 0)
     .plus(input.bonusesBrl)
     .minus(input.feesBrl)
     .toNumber();

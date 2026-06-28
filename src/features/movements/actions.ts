@@ -11,9 +11,11 @@ import {
   createCashbackSchema,
   createConversionSchema,
   createFeeSchema,
+  createRakebackSchema,
   createTransferSchema,
   mapBonusToMovementStatus,
   mapCashbackToMovementStatus,
+  mapRakebackToMovementStatus,
   updateCapitalMovementSchema,
   updateSimpleMovementSchema,
   type ConfirmTransferInput,
@@ -22,6 +24,7 @@ import {
   type CreateCapitalDepositInput,
   type CreateCapitalWithdrawalInput,
   type CreateCashbackInput,
+  type CreateRakebackInput,
   type CreateConversionInput,
   type CreateFeeInput,
   type CreateTransferInput,
@@ -568,6 +571,38 @@ export async function createCashback(input: CreateCashbackInput) {
   return movement;
 }
 
+export async function createRakeback(input: CreateRakebackInput) {
+  const parsed = createRakebackSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+  const movementStatus = mapRakebackToMovementStatus(parsed.status);
+
+  const movement = await createMovementRow({
+    type: "rakeback",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "credit",
+    status: movementStatus,
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Rakeback",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+    metadata: { rakeback_status: parsed.status },
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
 export async function createBonus(input: CreateBonusInput) {
   const parsed = createBonusSchema.parse(input);
   await assertAccountOpen(parsed.account_id);
@@ -750,6 +785,7 @@ export async function updateSimpleMovement(input: UpdateSimpleMovementInput) {
   const editableTypes = [
     "fee",
     "cashback",
+    "rakeback",
     "bonus",
     "balance_adjustment",
     "capital_deposit",

@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Coins,
   Gift,
+  HandCoins,
   Pencil,
   Percent,
   Trash2,
@@ -45,6 +46,7 @@ const typeIcons: Partial<Record<MovementType, React.ReactNode>> = {
   transfer: <ArrowLeftRight className="size-4" />,
   conversion: <Coins className="size-4" />,
   cashback: <Percent className="size-4" />,
+  rakeback: <HandCoins className="size-4" />,
   bonus: <Gift className="size-4" />,
   fee: <ArrowUpRight className="size-4" />,
   balance_adjustment: <Wrench className="size-4" />,
@@ -69,9 +71,13 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
   const canEditCapital = ["capital_deposit", "capital_withdrawal"].includes(
     movement.type,
   );
-  const canEditSimple = ["fee", "cashback", "bonus", "balance_adjustment"].includes(
-    movement.type,
-  );
+  const canEditSimple = [
+    "fee",
+    "cashback",
+    "rakeback",
+    "bonus",
+    "balance_adjustment",
+  ].includes(movement.type);
 
   const amountColor =
     movement.type === "fee"

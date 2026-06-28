@@ -59,6 +59,16 @@ export const createCashbackSchema = z.object({
   external_id: z.string().max(120).optional(),
 });
 
+export const createRakebackSchema = z.object({
+  account_id: z.string().uuid(),
+  currency_id: z.string().uuid(),
+  amount: z.number().positive(),
+  occurred_at: z.string().min(1),
+  status: cashbackStatusSchema,
+  description: z.string().max(500).optional(),
+  external_id: z.string().max(120).optional(),
+});
+
 export const createBonusSchema = z.object({
   account_id: z.string().uuid(),
   currency_id: z.string().uuid(),
@@ -152,6 +162,7 @@ export type UpdateCapitalMovementInput = z.infer<
 >;
 export type CreateFeeInput = z.infer<typeof createFeeSchema>;
 export type CreateCashbackInput = z.infer<typeof createCashbackSchema>;
+export type CreateRakebackInput = z.infer<typeof createRakebackSchema>;
 export type CreateBonusInput = z.infer<typeof createBonusSchema>;
 export type CreateConversionInput = z.infer<typeof createConversionSchema>;
 export type CreateBalanceAdjustmentInput = z.infer<
@@ -168,6 +179,8 @@ export function mapCashbackToMovementStatus(
   if (status === "cancelado" || status === "expirado") return "cancelled";
   return "pending";
 }
+
+export const mapRakebackToMovementStatus = mapCashbackToMovementStatus;
 
 export function mapBonusToMovementStatus(
   status: z.infer<typeof bonusStatusSchema>,

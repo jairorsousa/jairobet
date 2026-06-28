@@ -52,6 +52,7 @@ export function ResultReportCards({ report }: { report: ResultReport }) {
     },
     { label: "Taxas", value: formatMoney(report.fees, "BRL"), negative: true },
     { label: "Cashback", value: formatMoney(report.cashback, "BRL") },
+    { label: "Rakeback", value: formatMoney(report.rakeback, "BRL") },
     { label: "Bônus", value: formatMoney(report.bonuses, "BRL") },
   ];
 
@@ -100,6 +101,7 @@ export function AccountReportTable({
             <th className="px-4 py-3 font-medium text-right">Saldo fim</th>
             <th className="px-4 py-3 font-medium text-right">Aportes</th>
             <th className="px-4 py-3 font-medium text-right">Cashback</th>
+            <th className="px-4 py-3 font-medium text-right">Rakeback</th>
             <th className="px-4 py-3 font-medium text-right">Taxas</th>
             <th className="px-4 py-3 font-medium text-right">Resultado</th>
           </tr>
@@ -122,6 +124,9 @@ export function AccountReportTable({
               </td>
               <td className="px-4 py-3 text-right">
                 {formatMoney(row.cashback, "BRL")}
+              </td>
+              <td className="px-4 py-3 text-right">
+                {formatMoney(row.rakeback, "BRL")}
               </td>
               <td className="px-4 py-3 text-right text-destructive">
                 {formatMoney(row.fees, "BRL")}

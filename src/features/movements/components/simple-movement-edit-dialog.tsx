@@ -26,6 +26,7 @@ import { updateSimpleMovement } from "@/features/movements/actions";
 import {
   mapBonusToMovementStatus,
   mapCashbackToMovementStatus,
+  mapRakebackToMovementStatus,
   updateSimpleMovementSchema,
   type UpdateSimpleMovementInput,
 } from "@/features/movements/schemas";
@@ -96,6 +97,16 @@ export function SimpleMovementEditDialog({
       if (movement.type === "cashback" && meta.cashback_status) {
         status = mapCashbackToMovementStatus(
           meta.cashback_status as
+            | "previsto"
+            | "pendente"
+            | "recebido"
+            | "cancelado"
+            | "expirado",
+        );
+      }
+      if (movement.type === "rakeback" && meta.rakeback_status) {
+        status = mapRakebackToMovementStatus(
+          meta.rakeback_status as
             | "previsto"
             | "pendente"
             | "recebido"
@@ -184,6 +195,36 @@ export function SimpleMovementEditDialog({
                   form.setValue("metadata", {
                     ...(form.getValues("metadata") ?? metadata),
                     cashback_status: v,
+                  })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="previsto">Previsto</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="recebido">Recebido</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {movement.type === "rakeback" && (
+            <div className="space-y-2">
+              <Label>Status rakeback</Label>
+              <Select
+                value={
+                  ((form.watch("metadata") as Record<string, unknown>)
+                    ?.rakeback_status as string) ??
+                  (metadata.rakeback_status as string) ??
+                  "pendente"
+                }
+                onValueChange={(v) =>
+                  v &&
+                  form.setValue("metadata", {
+                    ...(form.getValues("metadata") ?? metadata),
+                    rakeback_status: v,
                   })
                 }
               >
