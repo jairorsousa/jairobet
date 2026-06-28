@@ -20,6 +20,10 @@ import {
   hasDuplicateExternalId,
 } from "@/features/movements/actions";
 import type { CreateTransferInput } from "@/features/movements/schemas";
+import {
+  isValidDecimalDraft,
+  parseDecimalDraft,
+} from "@/shared/lib/money/decimal-input";
 import { formatMoney } from "@/shared/lib/money/format";
 import {
   transferKindLabels,
@@ -46,6 +50,13 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
     expected_received_amount: 0,
     received_amount: undefined,
     fee_amount: 0,
+  });
+
+  const [amountDrafts, setAmountDrafts] = useState({
+    sent_amount: "",
+    expected_received_amount: "",
+    received_amount: "",
+    fee_amount: "",
   });
 
   const fromAccount = useMemo(
@@ -116,18 +127,63 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
     });
   }
 
+  function handleAmountDraftChange(
+    field: keyof typeof amountDrafts,
+    raw: string,
+    syncReceived = false,
+  ) {
+    if (!isValidDecimalDraft(raw)) return;
+    setAmountDrafts((prev) => ({
+      ...prev,
+      [field]: raw,
+      ...(syncReceived ? { received_amount: raw } : {}),
+    }));
+  }
+
+  function handleNextStep() {
+    if (step === 2) {
+      const sentAmount = parseDecimalDraft(amountDrafts.sent_amount);
+      if (sentAmount === undefined || sentAmount <= 0) {
+        toast.error("Informe o valor enviado");
+        return;
+      }
+    }
+    if (step === 3 && form.status === "completed") {
+      const receivedAmount = parseDecimalDraft(amountDrafts.received_amount);
+      if (receivedAmount === undefined || receivedAmount <= 0) {
+        toast.error("Informe o valor efetivamente recebido");
+        return;
+      }
+    }
+    setStep((s) => s + 1);
+  }
+
   async function handleSubmit() {
+    const sentAmount = parseDecimalDraft(amountDrafts.sent_amount);
+    const expectedAmount = parseDecimalDraft(amountDrafts.expected_received_amount);
+    const receivedAmount = parseDecimalDraft(amountDrafts.received_amount);
+    const feeAmount = parseDecimalDraft(amountDrafts.fee_amount) ?? 0;
+
     if (
       !form.kind ||
       !form.from_account_id ||
       !form.from_currency_id ||
       !form.to_account_id ||
       !form.to_currency_id ||
-      !form.sent_amount ||
       !form.occurred_at ||
       !form.status
     ) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (sentAmount === undefined || sentAmount <= 0) {
+      toast.error("Informe o valor enviado");
+      return;
+    }
+
+    if (form.status === "completed" && (receivedAmount === undefined || receivedAmount <= 0)) {
+      toast.error("Informe o valor efetivamente recebido");
       return;
     }
 
@@ -145,10 +201,10 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
         from_currency_id: form.from_currency_id,
         to_account_id: form.to_account_id,
         to_currency_id: form.to_currency_id,
-        sent_amount: form.sent_amount,
-        expected_received_amount: form.expected_received_amount,
-        received_amount: form.received_amount,
-        fee_amount: form.fee_amount,
+        sent_amount: sentAmount,
+        expected_received_amount: expectedAmount,
+        received_amount: receivedAmount,
+        fee_amount: feeAmount,
         status: form.status,
         occurred_at: form.occurred_at,
         external_id: form.external_id,
@@ -353,12 +409,12 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
               <div className="space-y-2">
                 <Label>Valor enviado</Label>
                 <Input
-                  type="number"
-                  step="any"
-                  min="0.00000001"
-                  value={form.sent_amount || ""}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00016007"
+                  value={amountDrafts.sent_amount}
                   onChange={(e) =>
-                    updateField("sent_amount", parseFloat(e.target.value) || 0)
+                    handleAmountDraftChange("sent_amount", e.target.value)
                   }
                 />
               </div>
@@ -367,28 +423,28 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                   {isTrader ? "Quantidade recebida" : "Valor esperado no destino"}
                 </Label>
                 <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={form.expected_received_amount || ""}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value) || 0;
-                    updateField("expected_received_amount", value);
-                    if (isTrader) {
-                      updateField("received_amount", value);
-                    }
-                  }}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00016007"
+                  value={amountDrafts.expected_received_amount}
+                  onChange={(e) =>
+                    handleAmountDraftChange(
+                      "expected_received_amount",
+                      e.target.value,
+                      isTrader,
+                    )
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>Taxa (opcional)</Label>
                 <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={form.fee_amount || ""}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={amountDrafts.fee_amount}
                   onChange={(e) =>
-                    updateField("fee_amount", parseFloat(e.target.value) || 0)
+                    handleAmountDraftChange("fee_amount", e.target.value)
                   }
                 />
               </div>
@@ -419,14 +475,14 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 <div className="space-y-2">
                   <Label>Valor efetivamente recebido</Label>
                   <Input
-                    type="number"
-                    step="any"
-                    min="0.00000001"
-                    value={form.received_amount || ""}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00016007"
+                    value={amountDrafts.received_amount}
                     onChange={(e) =>
-                      updateField(
+                      handleAmountDraftChange(
                         "received_amount",
-                        parseFloat(e.target.value) || 0,
+                        e.target.value,
                       )
                     }
                   />
@@ -480,11 +536,26 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 <span className="text-muted-foreground">Enviado: </span>
                 {fromCurrency &&
                   formatMoney(
-                    form.sent_amount ?? 0,
+                    parseDecimalDraft(amountDrafts.sent_amount) ?? 0,
                     fromCurrency.code,
                     fromCurrency.decimal_places,
                   )}
               </p>
+              {(parseDecimalDraft(amountDrafts.expected_received_amount) ??
+                0) > 0 && (
+                <p>
+                  <span className="text-muted-foreground">
+                    {isTrader ? "Recebido (esperado): " : "Esperado: "}
+                  </span>
+                  {toCurrency &&
+                    formatMoney(
+                      parseDecimalDraft(amountDrafts.expected_received_amount) ??
+                        0,
+                      toCurrency.code,
+                      toCurrency.decimal_places,
+                    )}
+                </p>
+              )}
               <p>
                 <span className="text-muted-foreground">Status: </span>
                 {form.status === "pending" ? "Pendente" : "Concluída"}
@@ -494,7 +565,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                   <span className="text-muted-foreground">Recebido: </span>
                   {toCurrency &&
                     formatMoney(
-                      form.received_amount ?? 0,
+                      parseDecimalDraft(amountDrafts.received_amount) ?? 0,
                       toCurrency.code,
                       toCurrency.decimal_places,
                     )}
@@ -513,7 +584,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
               Voltar
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={() => setStep((s) => s + 1)}>
+              <Button type="button" onClick={handleNextStep}>
                 Próximo
               </Button>
             ) : (

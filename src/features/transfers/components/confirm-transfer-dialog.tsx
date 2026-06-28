@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -20,6 +20,11 @@ import {
   confirmTransferSchema,
   type ConfirmTransferInput,
 } from "@/features/movements/schemas";
+import {
+  formatNumberDraft,
+  isValidDecimalDraft,
+  parseDecimalDraft,
+} from "@/shared/lib/money/decimal-input";
 import { formatMoney } from "@/shared/lib/money/format";
 import {
   formatTransferTitle,
@@ -41,6 +46,7 @@ export function ConfirmTransferDialog({
   onSuccess,
 }: ConfirmTransferDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [receivedDraft, setReceivedDraft] = useState("");
 
   const metadata = (transfer?.metadata ?? {}) as Record<string, unknown>;
   const expected = metadata.expected_received as number | undefined;
@@ -55,11 +61,28 @@ export function ConfirmTransferDialog({
         }
       : undefined,
   });
+  const { setValue } = form;
+
+  useEffect(() => {
+    if (!transfer || !open) return;
+    const initial = expected ?? transfer.amount;
+    setReceivedDraft(formatNumberDraft(initial));
+    setValue("received_amount", initial);
+  }, [transfer, open, expected, setValue]);
 
   async function onSubmit(values: ConfirmTransferInput) {
+    const receivedAmount = parseDecimalDraft(receivedDraft);
+    if (receivedAmount === undefined || receivedAmount <= 0) {
+      toast.error("Informe o valor recebido");
+      return;
+    }
+
     setLoading(true);
     try {
-      await confirmTransferReceipt(values);
+      await confirmTransferReceipt({
+        ...values,
+        received_amount: receivedAmount,
+      });
       toast.success("Recebimento confirmado");
       onOpenChange(false);
       onSuccess?.();
@@ -112,10 +135,21 @@ export function ConfirmTransferDialog({
             <Label htmlFor="received_amount">Valor recebido</Label>
             <Input
               id="received_amount"
-              type="number"
-              step="any"
-              min="0.00000001"
-              {...form.register("received_amount", { valueAsNumber: true })}
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00016007"
+              value={receivedDraft}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (!isValidDecimalDraft(raw)) return;
+                setReceivedDraft(raw);
+                const parsed = parseDecimalDraft(raw);
+                if (parsed !== undefined) {
+                  form.setValue("received_amount", parsed, {
+                    shouldValidate: true,
+                  });
+                }
+              }}
             />
           </div>
           <div className="space-y-2">
