@@ -5,7 +5,15 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/shared/config/navigation";
 
-const mobileItems = navItems.slice(0, 5);
+const mobileHrefs = new Set([
+  "/",
+  "/titulares",
+  "/contas",
+  "/movimentacoes",
+  "/transferencias",
+]);
+
+const mobileItems = navItems.filter((item) => mobileHrefs.has(item.href));
 
 export function BottomNav() {
   const pathname = usePathname();

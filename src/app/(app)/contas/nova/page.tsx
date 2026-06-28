@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Plus, Wallet } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { listActiveBanks } from "@/features/banks/actions";
 import { listCurrencies } from "@/features/currencies/actions";
+import { listActiveCryptoBrokers } from "@/features/crypto-brokers/actions";
 import { AccountForm } from "@/features/accounts/components/account-form";
 import { listActiveHolders } from "@/features/holders/actions";
 import { Header, PageContainer } from "@/shared/components/layout";
@@ -13,14 +15,19 @@ interface NovaContaPageProps {
 
 export default async function NovaContaPage({ searchParams }: NovaContaPageProps) {
   const params = await searchParams;
-  const [holders, currencies] = await Promise.all([
+  const [holders, banks, cryptoBrokers, currencies] = await Promise.all([
     listActiveHolders(),
+    listActiveBanks(),
+    listActiveCryptoBrokers(),
     listCurrencies(),
   ]);
 
   const defaultType = (["bank", "crypto", "betting"].includes(params.tipo ?? "")
     ? params.tipo
     : "bank") as AccountType;
+
+  const missingBank = defaultType === "bank" && banks.length === 0;
+  const missingBroker = defaultType === "crypto" && cryptoBrokers.length === 0;
 
   return (
     <>
@@ -37,6 +44,24 @@ export default async function NovaContaPage({ searchParams }: NovaContaPageProps
               </p>
               <Link href="/titulares">
                 <Button className="mt-4">Ir para titulares</Button>
+              </Link>
+            </div>
+          ) : missingBank ? (
+            <div className="glass-card rounded-xl border border-border/50 p-8 text-center">
+              <p className="text-muted-foreground">
+                Cadastre ao menos um banco antes de criar uma conta bancária.
+              </p>
+              <Link href="/bancos">
+                <Button className="mt-4">Ir para bancos</Button>
+              </Link>
+            </div>
+          ) : missingBroker ? (
+            <div className="glass-card rounded-xl border border-border/50 p-8 text-center">
+              <p className="text-muted-foreground">
+                Cadastre ao menos uma corretora antes de criar uma conta de cripto.
+              </p>
+              <Link href="/corretoras">
+                <Button className="mt-4">Ir para corretoras</Button>
               </Link>
             </div>
           ) : (
@@ -61,6 +86,8 @@ export default async function NovaContaPage({ searchParams }: NovaContaPageProps
               </div>
               <AccountForm
                 holders={holders}
+                banks={banks}
+                cryptoBrokers={cryptoBrokers}
                 currencies={currencies}
                 defaultType={defaultType}
               />

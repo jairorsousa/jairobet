@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,12 +31,16 @@ import {
 import type {
   AccountType,
   AccountWithDetails,
+  Bank,
+  CryptoBroker,
   Currency,
   Holder,
 } from "@/shared/types/database";
 
 interface AccountFormProps {
   holders: Holder[];
+  banks: Bank[];
+  cryptoBrokers: CryptoBroker[];
   currencies: Currency[];
   account?: AccountWithDetails;
   defaultType?: AccountType;
@@ -43,6 +48,8 @@ interface AccountFormProps {
 
 export function AccountForm({
   holders,
+  banks,
+  cryptoBrokers,
   currencies,
   account,
   defaultType = "bank",
@@ -68,6 +75,16 @@ export function AccountForm({
     ];
   }, [account, brlCurrency, currencies]);
 
+  const resolvedBankId =
+    account?.bank_id ??
+    banks.find((b) => b.name === account?.institution)?.id ??
+    "";
+
+  const resolvedBrokerId =
+    account?.crypto_broker_id ??
+    cryptoBrokers.find((b) => b.name === account?.institution)?.id ??
+    "";
+
   const form = useForm<CreateAccountInput>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: {
@@ -75,6 +92,8 @@ export function AccountForm({
       name: account?.name ?? "",
       type: account?.type ?? defaultType,
       institution: account?.institution ?? "",
+      bank_id: resolvedBankId,
+      crypto_broker_id: resolvedBrokerId,
       default_currency_id:
         account?.default_currency_id ?? brlCurrency?.id ?? "",
       initial_balance_date:
@@ -96,8 +115,40 @@ export function AccountForm({
   });
 
   const accountType = form.watch("type");
+  const holderId = form.watch("holder_id");
+  const bankId = form.watch("bank_id");
+  const brokerId = form.watch("crypto_broker_id");
   const isCrypto = accountType === "crypto";
   const isBetting = accountType === "betting";
+  const isBank = accountType === "bank";
+
+  useEffect(() => {
+    if (isEditing) return;
+
+    const holder = holders.find((h) => h.id === holderId);
+    if (!holder) return;
+
+    if (isBank && bankId) {
+      const bank = banks.find((b) => b.id === bankId);
+      if (bank) form.setValue("name", `${bank.name} · ${holder.name}`);
+    }
+
+    if (isCrypto && brokerId) {
+      const broker = cryptoBrokers.find((b) => b.id === brokerId);
+      if (broker) form.setValue("name", `${broker.name} · ${holder.name}`);
+    }
+  }, [
+    holderId,
+    bankId,
+    brokerId,
+    isBank,
+    isCrypto,
+    isEditing,
+    holders,
+    banks,
+    cryptoBrokers,
+    form,
+  ]);
 
   async function onSubmit(values: CreateAccountInput) {
     setLoading(true);
@@ -121,6 +172,9 @@ export function AccountForm({
 
   function handleTypeChange(type: AccountType) {
     form.setValue("type", type);
+    form.setValue("bank_id", undefined);
+    form.setValue("crypto_broker_id", undefined);
+    form.setValue("institution", "");
     if (type !== "crypto") {
       const currencyId = brlCurrency?.id ?? currencies[0]?.id ?? "";
       form.setValue("currency_balances", [
@@ -181,21 +235,97 @@ export function AccountForm({
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {isBank && (
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da conta</Label>
-              <Input id="name" {...form.register("name")} placeholder="Ex.: Nubank João" />
+              <Label>Banco</Label>
+              <Select
+                value={form.watch("bank_id") ?? ""}
+                onValueChange={(v) => v && form.setValue("bank_id", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o banco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {banks.map((bank) => (
+                    <SelectItem key={bank.id} value={bank.id}>
+                      {bank.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {banks.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  <Link href="/bancos" className="text-primary hover:underline">
+                    Cadastre um banco
+                  </Link>{" "}
+                  antes de criar a conta.
+                </p>
+              )}
+              {form.formState.errors.bank_id && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.bank_id.message}
+                </p>
+              )}
             </div>
+          )}
+
+          {isCrypto && (
             <div className="space-y-2">
-              <Label htmlFor="institution">
-                {isBetting ? "Casa de apostas" : isCrypto ? "Corretora / carteira" : "Banco / instituição"}
-              </Label>
+              <Label>Corretora / carteira</Label>
+              <Select
+                value={form.watch("crypto_broker_id") ?? ""}
+                onValueChange={(v) => v && form.setValue("crypto_broker_id", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a corretora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cryptoBrokers.map((broker) => (
+                    <SelectItem key={broker.id} value={broker.id}>
+                      {broker.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {cryptoBrokers.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  <Link href="/corretoras" className="text-primary hover:underline">
+                    Cadastre uma corretora
+                  </Link>{" "}
+                  antes de criar a conta.
+                </p>
+              )}
+              {form.formState.errors.crypto_broker_id && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.crypto_broker_id.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isBetting && (
+            <div className="space-y-2">
+              <Label htmlFor="institution">Casa de apostas</Label>
               <Input
                 id="institution"
                 {...form.register("institution")}
-                placeholder={isBetting ? "Ex.: Bet365" : isCrypto ? "Ex.: Binance" : "Ex.: Nubank"}
+                placeholder="Ex.: Bet365"
               />
+              {form.formState.errors.institution && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.institution.message}
+                </p>
+              )}
             </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome da conta</Label>
+            <Input
+              id="name"
+              {...form.register("name")}
+              placeholder="Gerado automaticamente ao selecionar titular e instituição"
+            />
           </div>
 
           <div className="space-y-2">
@@ -251,7 +381,9 @@ export function AccountForm({
               size="sm"
               onClick={() =>
                 append({
-                  currency_id: currencies.find((c) => c.code === "USDT")?.id ?? currencies[0].id,
+                  currency_id:
+                    currencies.find((c) => c.code === "USDT")?.id ??
+                    currencies[0].id,
                   initial_balance: 0,
                 })
               }
@@ -371,11 +503,7 @@ export function AccountForm({
             <Textarea id="notes" rows={3} {...form.register("notes")} />
           </div>
           <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
+            <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="shadow-gold">

@@ -30,6 +30,8 @@ function makeAccount(
     name: `Conta ${id}`,
     type: "bank",
     institution: "Test",
+    bank_id: null,
+    crypto_broker_id: null,
     default_currency_id: "brl",
     initial_balance_date: "2026-01-01",
     status: "active",

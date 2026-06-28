@@ -7,8 +7,11 @@ DECLARE
   brl_id UUID;
   h1_id UUID;
   h2_id UUID;
+  bank_nubank UUID;
+  broker_binance UUID;
   acc_bank UUID;
   acc_bet UUID;
+  acc_crypto UUID;
 BEGIN
   SELECT id INTO op_id FROM auth.users ORDER BY created_at LIMIT 1;
   IF op_id IS NULL THEN
@@ -36,14 +39,33 @@ BEGIN
     RETURNING id INTO h2_id;
   END IF;
 
+  SELECT id INTO bank_nubank FROM banks
+  WHERE operator_id = op_id AND name = 'Nubank';
+
+  IF bank_nubank IS NULL THEN
+    INSERT INTO banks (operator_id, name, notes, status)
+    VALUES (op_id, 'Nubank', 'Conta demo', 'active')
+    RETURNING id INTO bank_nubank;
+  END IF;
+
+  SELECT id INTO broker_binance FROM crypto_brokers
+  WHERE operator_id = op_id AND name = 'Binance';
+
+  IF broker_binance IS NULL THEN
+    INSERT INTO crypto_brokers (operator_id, name, notes, status)
+    VALUES (op_id, 'Binance', 'Corretora demo', 'active')
+    RETURNING id INTO broker_binance;
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM accounts WHERE operator_id = op_id AND name = 'Nubank Demo'
   ) THEN
     INSERT INTO accounts (
-      operator_id, holder_id, name, type, institution,
+      operator_id, holder_id, name, type, institution, bank_id,
       default_currency_id, initial_balance_date, status
     ) VALUES (
-      op_id, h1_id, 'Nubank Demo', 'bank', 'Nubank', brl_id, CURRENT_DATE, 'active'
+      op_id, h1_id, 'Nubank Demo', 'bank', 'Nubank', bank_nubank,
+      brl_id, CURRENT_DATE, 'active'
     ) RETURNING id INTO acc_bank;
 
     INSERT INTO account_currencies (account_id, currency_id, initial_balance, calculated_balance)
@@ -64,5 +86,20 @@ BEGIN
     VALUES (acc_bet, brl_id, 1000, 1000);
   END IF;
 
-  RAISE NOTICE 'JairoBet seed: titulares e contas demo prontos para o operador %', op_id;
+  IF NOT EXISTS (
+    SELECT 1 FROM accounts WHERE operator_id = op_id AND name = 'Binance Demo'
+  ) THEN
+    INSERT INTO accounts (
+      operator_id, holder_id, name, type, institution, crypto_broker_id,
+      default_currency_id, initial_balance_date, status
+    ) VALUES (
+      op_id, h2_id, 'Binance Demo', 'crypto', 'Binance', broker_binance,
+      brl_id, CURRENT_DATE, 'active'
+    ) RETURNING id INTO acc_crypto;
+
+    INSERT INTO account_currencies (account_id, currency_id, initial_balance, calculated_balance)
+    VALUES (acc_crypto, brl_id, 2500, 2500);
+  END IF;
+
+  RAISE NOTICE 'JairoBet seed: titulares, bancos, corretoras e contas demo prontos para o operador %', op_id;
 END $$;

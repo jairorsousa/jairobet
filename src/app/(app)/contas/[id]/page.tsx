@@ -4,7 +4,9 @@ import { getAccount, listSelectableAccounts } from "@/features/accounts/actions"
 import { listAccountMovements } from "@/features/movements/actions";
 import { listReconciliations } from "@/features/reconciliation/actions";
 import { AccountDetail } from "@/features/accounts/components/account-detail";
+import { listActiveBanks } from "@/features/banks/actions";
 import { listCurrencies } from "@/features/currencies/actions";
+import { listActiveCryptoBrokers } from "@/features/crypto-brokers/actions";
 import { listHolders } from "@/features/holders/actions";
 import { Header, PageContainer } from "@/shared/components/layout";
 
@@ -17,14 +19,23 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
 
   try {
     const account = await getAccount(id);
-    const [allHolders, currencies, movements, reconciliations, selectableAccounts] =
-      await Promise.all([
-        listHolders(),
-        listCurrencies(),
-        listAccountMovements(id),
-        listReconciliations(id),
-        listSelectableAccounts(),
-      ]);
+    const [
+      allHolders,
+      banks,
+      cryptoBrokers,
+      currencies,
+      movements,
+      reconciliations,
+      selectableAccounts,
+    ] = await Promise.all([
+      listHolders(),
+      listActiveBanks(),
+      listActiveCryptoBrokers(),
+      listCurrencies(),
+      listAccountMovements(id),
+      listReconciliations(id),
+      listSelectableAccounts(),
+    ]);
     const holders = allHolders.filter(
       (h) => h.status === "active" || h.id === account.holder_id,
     );
@@ -39,6 +50,8 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
           <AccountDetail
             account={account}
             holders={holders}
+            banks={banks}
+            cryptoBrokers={cryptoBrokers}
             currencies={currencies}
             movements={movements}
             reconciliations={reconciliations}

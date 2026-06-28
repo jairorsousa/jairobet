@@ -13,11 +13,13 @@ const currencyBalanceSchema = z.object({
   initial_balance: z.number().min(0, "Saldo não pode ser negativo"),
 });
 
-export const createAccountSchema = z.object({
+const accountBaseSchema = z.object({
   holder_id: z.string().uuid("Selecione um titular"),
   name: z.string().min(1, "Nome é obrigatório").max(120),
   type: accountTypeSchema,
-  institution: z.string().min(1, "Instituição é obrigatória").max(120),
+  institution: z.string().max(120).optional(),
+  bank_id: z.string().uuid().optional(),
+  crypto_broker_id: z.string().uuid().optional(),
   default_currency_id: z.string().uuid(),
   initial_balance_date: z.string().min(1),
   status: accountStatusSchema,
@@ -31,12 +33,49 @@ export const createAccountSchema = z.object({
   currency_balances: z.array(currencyBalanceSchema).min(1),
 });
 
-export const updateAccountSchema = createAccountSchema
+type InstitutionValidationInput = Pick<
+  z.infer<typeof accountBaseSchema>,
+  "type" | "bank_id" | "crypto_broker_id" | "institution"
+>;
+
+function validateInstitution(
+  data: InstitutionValidationInput,
+  ctx: z.RefinementCtx,
+) {
+  if (data.type === "bank" && !data.bank_id) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Selecione um banco",
+      path: ["bank_id"],
+    });
+  }
+  if (data.type === "crypto" && !data.crypto_broker_id) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Selecione uma corretora / carteira",
+      path: ["crypto_broker_id"],
+    });
+  }
+  if (data.type === "betting" && !data.institution?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Informe a casa de apostas",
+      path: ["institution"],
+    });
+  }
+}
+
+export const createAccountSchema = accountBaseSchema.superRefine(
+  validateInstitution,
+);
+
+export const updateAccountSchema = accountBaseSchema
   .omit({ currency_balances: true })
   .extend({
     id: z.string().uuid(),
     currency_balances: z.array(currencyBalanceSchema).optional(),
-  });
+  })
+  .superRefine(validateInstitution);
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;

@@ -89,6 +89,45 @@ export async function getAccount(id: string): Promise<AccountWithDetails> {
   return account;
 }
 
+async function resolveInstitutionFields(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parsed: CreateAccountInput | UpdateAccountInput,
+) {
+  if (parsed.type === "bank") {
+    const { data, error } = await supabase
+      .from("banks")
+      .select("name")
+      .eq("id", parsed.bank_id!)
+      .single();
+    if (error || !data) throw new Error("Banco inválido");
+    return {
+      institution: data.name,
+      bank_id: parsed.bank_id!,
+      crypto_broker_id: null,
+    };
+  }
+
+  if (parsed.type === "crypto") {
+    const { data, error } = await supabase
+      .from("crypto_brokers")
+      .select("name")
+      .eq("id", parsed.crypto_broker_id!)
+      .single();
+    if (error || !data) throw new Error("Corretora inválida");
+    return {
+      institution: data.name,
+      bank_id: null,
+      crypto_broker_id: parsed.crypto_broker_id!,
+    };
+  }
+
+  return {
+    institution: parsed.institution!.trim(),
+    bank_id: null,
+    crypto_broker_id: null,
+  };
+}
+
 export async function createAccount(input: CreateAccountInput) {
   const parsed = createAccountSchema.parse(input);
   const operatorId = await getOperatorId();
@@ -104,6 +143,8 @@ export async function createAccount(input: CreateAccountInput) {
     throw new Error("Titular inválido");
   }
 
+  const institutionFields = await resolveInstitutionFields(supabase, parsed);
+
   const { data: account, error: accountError } = await supabase
     .from("accounts")
     .insert({
@@ -111,7 +152,9 @@ export async function createAccount(input: CreateAccountInput) {
       holder_id: parsed.holder_id,
       name: parsed.name,
       type: parsed.type,
-      institution: parsed.institution,
+      institution: institutionFields.institution,
+      bank_id: institutionFields.bank_id,
+      crypto_broker_id: institutionFields.crypto_broker_id,
       default_currency_id: parsed.default_currency_id,
       initial_balance_date: parsed.initial_balance_date,
       status: parsed.status,
@@ -146,6 +189,8 @@ export async function createAccount(input: CreateAccountInput) {
 
   revalidatePath("/contas");
   revalidatePath("/titulares");
+  revalidatePath("/bancos");
+  revalidatePath("/corretoras");
   revalidatePath("/");
   return account as Account;
 }
@@ -161,13 +206,18 @@ export async function updateAccount(input: UpdateAccountInput) {
     .single();
 
   if (existingError || !existing) throw new Error("Conta não encontrada");
+
+  const institutionFields = await resolveInstitutionFields(supabase, parsed);
+
   const { data: account, error } = await supabase
     .from("accounts")
     .update({
       holder_id: parsed.holder_id,
       name: parsed.name,
       type: parsed.type,
-      institution: parsed.institution,
+      institution: institutionFields.institution,
+      bank_id: institutionFields.bank_id,
+      crypto_broker_id: institutionFields.crypto_broker_id,
       default_currency_id: parsed.default_currency_id,
       initial_balance_date: parsed.initial_balance_date,
       status: parsed.status,
@@ -202,6 +252,8 @@ export async function updateAccount(input: UpdateAccountInput) {
 
   revalidatePath("/contas");
   revalidatePath(`/contas/${parsed.id}`);
+  revalidatePath("/bancos");
+  revalidatePath("/corretoras");
   revalidatePath("/");
   return account as Account;
 }

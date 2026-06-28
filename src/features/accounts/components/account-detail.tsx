@@ -33,6 +33,8 @@ import { sumBalancesInBrl } from "@/shared/lib/domain/balance";
 import { formatMoney } from "@/shared/lib/money/format";
 import type {
   AccountWithDetails,
+  Bank,
+  CryptoBroker,
   Currency,
   Holder,
   MovementWithDetails,
@@ -43,6 +45,8 @@ import { cn } from "@/lib/utils";
 interface AccountDetailProps {
   account: AccountWithDetails;
   holders: Holder[];
+  banks: Bank[];
+  cryptoBrokers: CryptoBroker[];
   currencies: Currency[];
   movements: MovementWithDetails[];
   reconciliations: ReconciliationWithDetails[];
@@ -52,6 +56,8 @@ interface AccountDetailProps {
 export function AccountDetail({
   account,
   holders,
+  banks,
+  cryptoBrokers,
   currencies,
   movements,
   reconciliations,
@@ -89,6 +95,8 @@ export function AccountDetail({
         <AccountForm
           account={account}
           holders={holders}
+          banks={banks}
+          cryptoBrokers={cryptoBrokers}
           currencies={currencies}
         />
       </div>

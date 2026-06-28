@@ -1,6 +1,8 @@
 import {
   ArrowLeftRight,
   BarChart3,
+  Bitcoin,
+  Landmark,
   LayoutDashboard,
   Scale,
   Settings,
@@ -11,6 +13,8 @@ import {
 export const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/titulares", label: "Titulares", icon: Users },
+  { href: "/bancos", label: "Bancos", icon: Landmark },
+  { href: "/corretoras", label: "Corretoras", icon: Bitcoin },
   { href: "/contas", label: "Contas", icon: Wallet },
   { href: "/movimentacoes", label: "Movimentações", icon: BarChart3 },
   { href: "/transferencias", label: "Transferências", icon: ArrowLeftRight },

@@ -13,6 +13,8 @@ WHERE n.nspname = 'public'
   AND c.relkind = 'r'
   AND c.relname IN (
     'holders',
+    'banks',
+    'crypto_brokers',
     'accounts',
     'account_currencies',
     'movements',
@@ -32,6 +34,8 @@ WHERE grantee = 'authenticated'
   AND table_schema = 'public'
   AND table_name IN (
     'holders',
+    'banks',
+    'crypto_brokers',
     'accounts',
     'account_currencies',
     'movements',

@@ -42,6 +42,8 @@ export interface Account {
   deposit_methods: string | null;
   withdrawal_methods: string | null;
   pending_balance: number;
+  bank_id: string | null;
+  crypto_broker_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +69,34 @@ export interface AccountWithDetails extends Account {
 }
 
 export interface HolderWithStats extends Holder {
+  account_count: number;
+}
+
+export interface Bank {
+  id: string;
+  operator_id: string;
+  name: string;
+  notes: string | null;
+  status: HolderStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BankWithStats extends Bank {
+  account_count: number;
+}
+
+export interface CryptoBroker {
+  id: string;
+  operator_id: string;
+  name: string;
+  notes: string | null;
+  status: HolderStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CryptoBrokerWithStats extends CryptoBroker {
   account_count: number;
 }
 
