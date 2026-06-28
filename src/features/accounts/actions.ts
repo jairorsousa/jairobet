@@ -206,6 +206,11 @@ export async function updateAccount(input: UpdateAccountInput) {
   return account as Account;
 }
 
+export async function listSelectableAccounts(): Promise<AccountWithDetails[]> {
+  const accounts = await listAccounts();
+  return accounts.filter((a) => a.status !== "closed");
+}
+
 export async function deleteAccount(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("accounts").delete().eq("id", id);

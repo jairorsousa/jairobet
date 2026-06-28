@@ -69,3 +69,49 @@ export interface AccountWithDetails extends Account {
 export interface HolderWithStats extends Holder {
   account_count: number;
 }
+
+export type MovementType =
+  | "capital_deposit"
+  | "capital_withdrawal"
+  | "transfer"
+  | "conversion"
+  | "cashback"
+  | "bonus"
+  | "fee"
+  | "balance_adjustment";
+
+export type MovementDirection = "credit" | "debit";
+export type MovementStatus = "pending" | "completed" | "cancelled" | "failed";
+
+export interface Movement {
+  id: string;
+  operator_id: string;
+  type: MovementType;
+  account_id: string;
+  counter_account_id: string | null;
+  currency_id: string;
+  amount: number;
+  direction: MovementDirection;
+  status: MovementStatus;
+  occurred_at: string;
+  description: string | null;
+  external_id: string | null;
+  transfer_group_id: string | null;
+  exchange_rate: number;
+  amount_brl: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MovementWithDetails extends Movement {
+  account: Pick<Account, "id" | "name" | "type" | "holder_id"> & {
+    holder: Pick<Holder, "id" | "name">;
+  };
+  counter_account: Pick<Account, "id" | "name"> | null;
+  currency: Currency;
+}
+
+export interface PendingTransfer extends MovementWithDetails {
+  credit_movement: Movement | null;
+}

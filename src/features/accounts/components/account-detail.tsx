@@ -18,8 +18,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteAccount } from "@/features/accounts/actions";
 import { AccountForm } from "@/features/accounts/components/account-form";
+import { MovementsList } from "@/features/movements/components/movements-list";
 import {
   accountStatusColors,
   accountStatusLabels,
@@ -28,16 +30,29 @@ import {
 } from "@/shared/constants/labels";
 import { sumBalancesInBrl } from "@/shared/lib/domain/balance";
 import { formatMoney } from "@/shared/lib/money/format";
-import type { AccountWithDetails, Currency, Holder } from "@/shared/types/database";
+import type {
+  AccountWithDetails,
+  Currency,
+  Holder,
+  MovementWithDetails,
+} from "@/shared/types/database";
 import { cn } from "@/lib/utils";
 
 interface AccountDetailProps {
   account: AccountWithDetails;
   holders: Holder[];
   currencies: Currency[];
+  movements: MovementWithDetails[];
+  selectableAccounts: AccountWithDetails[];
 }
 
-export function AccountDetail({ account, holders, currencies }: AccountDetailProps) {
+export function AccountDetail({
+  account,
+  holders,
+  currencies,
+  movements,
+  selectableAccounts,
+}: AccountDetailProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -99,60 +114,80 @@ export function AccountDetail({ account, holders, currencies }: AccountDetailPro
         </Button>
       </div>
 
-      <Card className="glass-card border-border/50">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge className={cn("border-0", accountTypeColors[account.type])}>
-              {accountTypeLabels[account.type]}
-            </Badge>
-            <Badge variant="outline">{account.holder.name}</Badge>
-            <Badge className={cn("border-0", accountStatusColors[account.status])}>
-              {accountStatusLabels[account.status]}
-            </Badge>
-          </div>
-          <CardTitle className="text-2xl">{account.name}</CardTitle>
-          <p className="text-muted-foreground">{account.institution}</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {account.masked_identifier && (
-            <p className="text-sm">
-              <span className="text-muted-foreground">Identificação: </span>
-              {account.masked_identifier}
-            </p>
-          )}
-          <div className="rounded-lg border border-border/50 p-4">
-            <p className="text-sm text-muted-foreground">Total em BRL</p>
-            <p className="font-display text-3xl text-gradient-gold">
-              {formatMoney(totalBrl, "BRL")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Saldos por moeda</p>
-            {account.balances.map((balance) => (
-              <div
-                key={balance.id}
-                className="flex justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm"
-              >
-                <span>{balance.currency.code}</span>
-                <span
-                  className={
-                    balance.calculated_balance < 0 ? "text-destructive" : ""
-                  }
+      <Tabs defaultValue="resumo">
+        <TabsList>
+          <TabsTrigger value="resumo">Resumo</TabsTrigger>
+          <TabsTrigger value="movimentacoes">
+            Movimentações ({movements.length})
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="resumo" className="mt-4">
+          <Card className="glass-card border-border/50">
+            <CardHeader>
+              <div className="flex flex-wrap gap-2">
+                <Badge className={cn("border-0", accountTypeColors[account.type])}>
+                  {accountTypeLabels[account.type]}
+                </Badge>
+                <Badge variant="outline">{account.holder.name}</Badge>
+                <Badge
+                  className={cn("border-0", accountStatusColors[account.status])}
                 >
-                  {formatMoney(
-                    balance.calculated_balance,
-                    balance.currency.code,
-                    balance.currency.decimal_places,
-                  )}
-                </span>
+                  {accountStatusLabels[account.status]}
+                </Badge>
               </div>
-            ))}
-          </div>
-          {account.notes && (
-            <p className="text-sm text-muted-foreground">{account.notes}</p>
-          )}
-        </CardContent>
-      </Card>
+              <CardTitle className="text-2xl">{account.name}</CardTitle>
+              <p className="text-muted-foreground">{account.institution}</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {account.masked_identifier && (
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Identificação: </span>
+                  {account.masked_identifier}
+                </p>
+              )}
+              <div className="rounded-lg border border-border/50 p-4">
+                <p className="text-sm text-muted-foreground">Total em BRL</p>
+                <p className="font-display text-3xl text-gradient-gold">
+                  {formatMoney(totalBrl, "BRL")}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Saldos por moeda</p>
+                {account.balances.map((balance) => (
+                  <div
+                    key={balance.id}
+                    className="flex justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm"
+                  >
+                    <span>{balance.currency.code}</span>
+                    <span
+                      className={
+                        balance.calculated_balance < 0
+                          ? "font-medium text-destructive"
+                          : ""
+                      }
+                    >
+                      {formatMoney(
+                        balance.calculated_balance,
+                        balance.currency.code,
+                        balance.currency.decimal_places,
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {account.notes && (
+                <p className="text-sm text-muted-foreground">{account.notes}</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="movimentacoes" className="mt-4">
+          <MovementsList
+            movements={movements}
+            accounts={selectableAccounts}
+          />
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={deleting} onOpenChange={setDeleting}>
         <AlertDialogContent>

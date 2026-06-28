@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Wallet } from "lucide-react";
-import { getAccount } from "@/features/accounts/actions";
+import { getAccount, listSelectableAccounts } from "@/features/accounts/actions";
+import { listAccountMovements } from "@/features/movements/actions";
 import { AccountDetail } from "@/features/accounts/components/account-detail";
 import { listCurrencies } from "@/features/currencies/actions";
 import { listHolders } from "@/features/holders/actions";
@@ -15,10 +16,13 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
 
   try {
     const account = await getAccount(id);
-    const [allHolders, currencies] = await Promise.all([
-      listHolders(),
-      listCurrencies(),
-    ]);
+    const [allHolders, currencies, movements, selectableAccounts] =
+      await Promise.all([
+        listHolders(),
+        listCurrencies(),
+        listAccountMovements(id),
+        listSelectableAccounts(),
+      ]);
     const holders = allHolders.filter(
       (h) => h.status === "active" || h.id === account.holder_id,
     );
@@ -34,6 +38,8 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
             account={account}
             holders={holders}
             currencies={currencies}
+            movements={movements}
+            selectableAccounts={selectableAccounts}
           />
         </PageContainer>
       </>
