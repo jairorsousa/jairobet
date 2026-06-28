@@ -40,7 +40,7 @@ import type {
 
 const MOVEMENT_SELECT = `
   *,
-  account:accounts(id, name, type, holder_id, holder:holders(id, name)),
+  account:accounts!movements_account_id_fkey(id, name, type, holder_id, holder:holders(id, name)),
   counter_account:accounts!movements_counter_account_id_fkey(id, name),
   currency:currencies(*)
 `;
