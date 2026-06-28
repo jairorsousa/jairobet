@@ -122,6 +122,8 @@ export type MovementType =
   | "conversion"
   | "cashback"
   | "rakeback"
+  | "bet_won"
+  | "bet_lost"
   | "bonus"
   | "fee"
   | "balance_adjustment";

@@ -10,6 +10,8 @@ import {
   HandCoins,
   Pencil,
   Percent,
+  TrendingDown,
+  TrendingUp,
   Trash2,
   Wrench,
 } from "lucide-react";
@@ -47,6 +49,8 @@ const typeIcons: Partial<Record<MovementType, React.ReactNode>> = {
   conversion: <Coins className="size-4" />,
   cashback: <Percent className="size-4" />,
   rakeback: <HandCoins className="size-4" />,
+  bet_won: <TrendingUp className="size-4" />,
+  bet_lost: <TrendingDown className="size-4" />,
   bonus: <Gift className="size-4" />,
   fee: <ArrowUpRight className="size-4" />,
   balance_adjustment: <Wrench className="size-4" />,
@@ -75,12 +79,14 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
     "fee",
     "cashback",
     "rakeback",
+    "bet_won",
+    "bet_lost",
     "bonus",
     "balance_adjustment",
   ].includes(movement.type);
 
   const amountColor =
-    movement.type === "fee"
+    movement.type === "fee" || movement.type === "bet_lost"
       ? "text-destructive"
       : isPending && isCredit
         ? "text-warning"

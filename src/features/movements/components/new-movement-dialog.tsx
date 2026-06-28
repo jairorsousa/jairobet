@@ -27,6 +27,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   createBalanceAdjustment,
+  createBetLost,
+  createBetWon,
   createBonus,
   createCapitalDeposit,
   createCapitalWithdrawal,
@@ -38,6 +40,7 @@ import {
 } from "@/features/movements/actions";
 import {
   createBalanceAdjustmentSchema,
+  createBetResultSchema,
   createBonusSchema,
   createCapitalDepositSchema,
   createCashbackSchema,
@@ -191,6 +194,18 @@ export function NewMovementDialog({
     },
   });
 
+  const betForm = useForm({
+    resolver: zodResolver(createBetResultSchema),
+    defaultValues: {
+      account_id: "",
+      currency_id: "",
+      amount: 0,
+      occurred_at: new Date().toISOString().slice(0, 10),
+      description: "",
+      external_id: "",
+    },
+  });
+
   const bonusForm = useForm({
     resolver: zodResolver(createBonusSchema),
     defaultValues: {
@@ -290,6 +305,20 @@ export function NewMovementDialog({
           await warnDuplicate(values.external_id);
           await createRakeback(values);
           toast.success("Rakeback registrado");
+          break;
+        }
+        case "bet_won": {
+          const values = createBetResultSchema.parse(betForm.getValues());
+          await warnDuplicate(values.external_id);
+          await createBetWon(values);
+          toast.success("Aposta ganha registrada");
+          break;
+        }
+        case "bet_lost": {
+          const values = createBetResultSchema.parse(betForm.getValues());
+          await warnDuplicate(values.external_id);
+          await createBetLost(values);
+          toast.success("Aposta perdida registrada");
           break;
         }
         case "bonus": {
@@ -550,6 +579,52 @@ export function NewMovementDialog({
                   <Label>Data</Label>
                   <Input type="date" {...rakebackForm.register("occurred_at")} />
                 </div>
+              </div>
+            </>
+          )}
+
+          {(formType === "bet_won" || formType === "bet_lost") && (
+            <>
+              <AccountCurrencySelect
+                accounts={accounts}
+                accountId={betForm.watch("account_id")}
+                currencyId={betForm.watch("currency_id")}
+                onAccountChange={(accountId, defaultCurrencyId) => {
+                  betForm.setValue("account_id", accountId);
+                  betForm.setValue("currency_id", defaultCurrencyId);
+                }}
+                onCurrencyChange={(currencyId) =>
+                  betForm.setValue("currency_id", currencyId)
+                }
+                accountFilter={(a) => a.type === "betting"}
+              />
+              {bettingAccounts.length === 0 && (
+                <p className="text-sm text-warning">
+                  Cadastre uma conta de casa de apostas primeiro.
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Valor</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    {...betForm.register("amount", { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data</Label>
+                  <Input type="date" {...betForm.register("occurred_at")} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>ID transação (opcional)</Label>
+                <Input {...betForm.register("external_id")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea rows={2} {...betForm.register("description")} />
               </div>
             </>
           )}

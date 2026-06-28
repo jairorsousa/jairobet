@@ -11,6 +11,8 @@ import {
   createCashbackSchema,
   createConversionSchema,
   createFeeSchema,
+  createBetLostSchema,
+  createBetWonSchema,
   createRakebackSchema,
   createTransferSchema,
   mapBonusToMovementStatus,
@@ -24,6 +26,8 @@ import {
   type CreateCapitalDepositInput,
   type CreateCapitalWithdrawalInput,
   type CreateCashbackInput,
+  type CreateBetLostInput,
+  type CreateBetWonInput,
   type CreateRakebackInput,
   type CreateConversionInput,
   type CreateFeeInput,
@@ -603,6 +607,66 @@ export async function createRakeback(input: CreateRakebackInput) {
   return movement;
 }
 
+export async function createBetWon(input: CreateBetWonInput) {
+  const parsed = createBetWonSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+
+  const movement = await createMovementRow({
+    type: "bet_won",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "credit",
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Aposta ganha",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
+export async function createBetLost(input: CreateBetLostInput) {
+  const parsed = createBetLostSchema.parse(input);
+  await assertAccountOpen(parsed.account_id);
+  const currency = await getCurrencyRate(parsed.currency_id);
+
+  const movement = await createMovementRow({
+    type: "bet_lost",
+    account_id: parsed.account_id,
+    currency_id: parsed.currency_id,
+    amount: parsed.amount,
+    direction: "debit",
+    status: "completed",
+    occurred_at: parsed.occurred_at,
+    description: parsed.description ?? "Aposta perdida",
+    external_id: parsed.external_id,
+    exchange_rate: currency.last_rate_brl,
+    amount_brl: calculateAmountBrl(
+      parsed.amount,
+      currency.code,
+      currency.last_rate_brl,
+    ),
+  });
+
+  await recalculateBalancesForAccounts([
+    { accountId: parsed.account_id, currencyId: parsed.currency_id },
+  ]);
+  revalidateMovementPaths();
+  return movement;
+}
+
 export async function createBonus(input: CreateBonusInput) {
   const parsed = createBonusSchema.parse(input);
   await assertAccountOpen(parsed.account_id);
@@ -786,6 +850,8 @@ export async function updateSimpleMovement(input: UpdateSimpleMovementInput) {
     "fee",
     "cashback",
     "rakeback",
+    "bet_won",
+    "bet_lost",
     "bonus",
     "balance_adjustment",
     "capital_deposit",
