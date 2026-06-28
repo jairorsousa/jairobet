@@ -28,6 +28,7 @@ import { formatMoney } from "@/shared/lib/money/format";
 import {
   transferKindLabels,
   transferKindOptions,
+  type TransferKind,
 } from "@/shared/lib/domain/transfer-labels";
 import type { AccountWithDetails } from "@/shared/types/database";
 
@@ -35,16 +36,26 @@ const STEPS = ["Origem", "Destino", "Valores", "Detalhes", "Confirmar"];
 
 interface TransferWizardProps {
   accounts: AccountWithDetails[];
+  initialKind?: TransferKind;
+  lockKind?: boolean;
 }
 
-export function TransferWizard({ accounts }: TransferWizardProps) {
+function defaultStatusForKind(kind: TransferKind): CreateTransferInput["status"] {
+  return kind === "trader" ? "completed" : "pending";
+}
+
+export function TransferWizard({
+  accounts,
+  initialKind = "transfer",
+  lockKind = false,
+}: TransferWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState<Partial<CreateTransferInput>>({
-    kind: "transfer",
-    status: "pending",
+    kind: initialKind,
+    status: defaultStatusForKind(initialKind),
     occurred_at: new Date().toISOString().slice(0, 10),
     sent_amount: 0,
     expected_received_amount: 0,
@@ -244,26 +255,35 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
           <CardTitle>{STEPS[step]}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tipo</Label>
-            <Select
-              value={form.kind ?? "transfer"}
-              onValueChange={(v) =>
-                v && handleKindChange(v as CreateTransferInput["kind"])
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {transferKindOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {lockKind ? (
+            <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Tipo: </span>
+              <span className="font-medium">
+                {transferKindLabels[form.kind ?? "transfer"]}
+              </span>
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select
+                value={form.kind ?? "transfer"}
+                onValueChange={(v) =>
+                  v && handleKindChange(v as CreateTransferInput["kind"])
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {transferKindOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {step === 0 && (
             <>

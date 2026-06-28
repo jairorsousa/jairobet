@@ -164,6 +164,14 @@ export interface PendingTransfer extends MovementWithDetails {
   credit_movement: Movement | null;
 }
 
+export interface TransferCredit extends Movement {
+  currency?: Currency;
+}
+
+export interface TransferRecord extends MovementWithDetails {
+  credit_movement: TransferCredit | null;
+}
+
 export interface Reconciliation {
   id: string;
   operator_id: string;

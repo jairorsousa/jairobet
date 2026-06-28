@@ -43,11 +43,14 @@ import {
 } from "@/shared/lib/domain/transfer-labels";
 import { getOperatorId } from "@/shared/lib/auth/get-operator";
 import { createClient } from "@/shared/lib/supabase/server";
+import type { TransferKind } from "@/shared/lib/domain/transfer-labels";
 import type {
   Movement,
+  MovementStatus,
   MovementType,
   MovementWithDetails,
   PendingTransfer,
+  TransferRecord,
 } from "@/shared/types/database";
 
 const MOVEMENT_SELECT = `
@@ -66,6 +69,16 @@ export interface ListMovementsFilters {
   to_date?: string;
   page?: number;
   page_size?: number;
+}
+
+export interface ListTransfersFilters {
+  kind?: TransferKind | "all";
+  status?: MovementStatus | "all";
+  account_id?: string | "all";
+  holder_id?: string | "all";
+  from_date?: string;
+  to_date?: string;
+  limit?: number;
 }
 
 async function assertAccountOpen(accountId: string) {
@@ -267,6 +280,83 @@ export async function listAccountMovements(
 
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as MovementWithDetails[];
+}
+
+export async function listTransfers(
+  filters: ListTransfersFilters = {},
+): Promise<TransferRecord[]> {
+  const supabase = await createClient();
+  const limit = filters.limit ?? 50;
+  const fetchLimit = Math.min(limit * 3, 300);
+
+  let query = supabase
+    .from("movements")
+    .select(MOVEMENT_SELECT)
+    .eq("type", "transfer")
+    .eq("direction", "debit")
+    .order("occurred_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(fetchLimit);
+
+  if (filters.status && filters.status !== "all") {
+    query = query.eq("status", filters.status);
+  }
+  if (filters.from_date) {
+    query = query.gte("occurred_at", filters.from_date);
+  }
+  if (filters.to_date) {
+    query = query.lte("occurred_at", filters.to_date);
+  }
+  if (filters.account_id && filters.account_id !== "all") {
+    query = query.or(
+      `account_id.eq.${filters.account_id},counter_account_id.eq.${filters.account_id}`,
+    );
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  let items = (data ?? []) as unknown as MovementWithDetails[];
+
+  if (filters.holder_id && filters.holder_id !== "all") {
+    items = items.filter((m) => m.account.holder_id === filters.holder_id);
+  }
+
+  if (filters.kind && filters.kind !== "all") {
+    items = items.filter((m) => {
+      const metadata = m.metadata as Record<string, unknown>;
+      return resolveTransferKind(metadata) === filters.kind;
+    });
+  }
+
+  items = items.slice(0, limit);
+
+  const groupIds = items
+    .map((m) => m.transfer_group_id)
+    .filter((id): id is string => Boolean(id));
+
+  const creditsMap = new Map<string, TransferRecord["credit_movement"]>();
+  if (groupIds.length > 0) {
+    const { data: credits } = await supabase
+      .from("movements")
+      .select("*, currency:currencies(*)")
+      .in("transfer_group_id", groupIds)
+      .eq("direction", "credit");
+
+    for (const credit of credits ?? []) {
+      creditsMap.set(
+        credit.transfer_group_id,
+        credit as TransferRecord["credit_movement"],
+      );
+    }
+  }
+
+  return items.map((debit) => ({
+    ...debit,
+    credit_movement: debit.transfer_group_id
+      ? (creditsMap.get(debit.transfer_group_id) ?? null)
+      : null,
+  }));
 }
 
 export async function listPendingTransfers(): Promise<PendingTransfer[]> {
