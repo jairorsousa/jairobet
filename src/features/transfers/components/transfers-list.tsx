@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmTransferDialog } from "@/features/transfers/components/confirm-transfer-dialog";
 import { formatMoney } from "@/shared/lib/money/format";
 import {
+  formatTransferTitle,
   resolveTransferKind,
-  transferKindLabels,
 } from "@/shared/lib/domain/transfer-labels";
 import type { PendingTransfer } from "@/shared/types/database";
 
@@ -45,15 +45,21 @@ export function TransfersList({ transfers: initial }: TransfersListProps) {
           const metadata = transfer.metadata as Record<string, unknown>;
           const expected = metadata.expected_received as number | undefined;
           const kind = resolveTransferKind(metadata);
+          const toCurrencyCode = metadata.to_currency_code as string | undefined;
+          const title = formatTransferTitle(
+            kind,
+            metadata,
+            transfer.account.name,
+            transfer.counter_account?.name ?? transfer.account.name,
+            transfer.currency.code,
+            toCurrencyCode,
+          );
 
           return (
             <Card key={transfer.id} className="glass-card border-border/50">
               <CardHeader className="flex flex-row items-start justify-between pb-2">
                 <div>
-                  <CardTitle className="text-base">
-                    {transferKindLabels[kind]} · {transfer.account.name} →{" "}
-                    {transfer.counter_account?.name}
-                  </CardTitle>
+                  <CardTitle className="text-base">{title}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {transfer.account.holder.name}
                     {transfer.description ? ` · ${transfer.description}` : ""}

@@ -141,11 +141,24 @@ export function MovementRow({ movement, accounts, onRefresh }: MovementRowProps)
             <Badge variant="outline" className="text-xs">
               {movement.account.name}
             </Badge>
-            {movement.counter_account && (
-              <span className="text-xs text-muted-foreground">
-                → {movement.counter_account.name}
-              </span>
-            )}
+            {movement.type === "transfer" &&
+              (movement.metadata as Record<string, unknown>)?.intra_account ===
+                true && (
+                <span className="text-xs text-muted-foreground">
+                  {(movement.metadata as Record<string, unknown>)
+                    .from_currency_code as string}{" "}
+                  →{" "}
+                  {(movement.metadata as Record<string, unknown>)
+                    .to_currency_code as string}
+                </span>
+              )}
+            {movement.counter_account &&
+              (movement.metadata as Record<string, unknown>)?.intra_account !==
+                true && (
+                <span className="text-xs text-muted-foreground">
+                  → {movement.counter_account.name}
+                </span>
+              )}
             {isPending && (
               <Badge className="border-0 bg-warning/15 text-warning">
                 {movementStatusLabels[movement.status]}

@@ -128,7 +128,7 @@ export const updateSimpleMovementSchema = z.object({
 
 export const transferKindSchema = z.enum([
   "transfer",
-  "exchange",
+  "trader",
   "deposit",
   "withdrawal",
 ]);
@@ -150,13 +150,24 @@ export const createTransferSchema = z
     description: z.string().max(500).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.from_account_id === data.to_account_id) {
+    const sameAccount = data.from_account_id === data.to_account_id;
+
+    if (data.kind === "trader" && sameAccount) {
+      if (data.from_currency_id === data.to_currency_id) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Selecione moedas diferentes para o trade",
+          path: ["to_currency_id"],
+        });
+      }
+    } else if (sameAccount) {
       ctx.addIssue({
         code: "custom",
         message: "Origem e destino devem ser diferentes",
         path: ["to_account_id"],
       });
     }
+
     if (data.status === "completed" && !data.received_amount) {
       ctx.addIssue({
         code: "custom",

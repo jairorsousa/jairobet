@@ -22,8 +22,8 @@ import {
 } from "@/features/movements/schemas";
 import { formatMoney } from "@/shared/lib/money/format";
 import {
+  formatTransferTitle,
   resolveTransferKind,
-  transferKindLabels,
 } from "@/shared/lib/domain/transfer-labels";
 import type { PendingTransfer } from "@/shared/types/database";
 
@@ -78,8 +78,14 @@ export function ConfirmTransferDialog({
         <DialogHeader>
           <DialogTitle>Confirmar recebimento</DialogTitle>
           <DialogDescription>
-            {transferKindLabels[resolveTransferKind(metadata)]} ·{" "}
-            {transfer.account.name} → {transfer.counter_account?.name}
+            {formatTransferTitle(
+              resolveTransferKind(metadata),
+              metadata,
+              transfer.account.name,
+              transfer.counter_account?.name ?? transfer.account.name,
+              transfer.currency.code,
+              metadata.to_currency_code as string | undefined,
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

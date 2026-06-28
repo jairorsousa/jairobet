@@ -37,7 +37,8 @@ import {
 } from "@/features/movements/schemas";
 import { calculateAmountBrl } from "@/shared/lib/domain/balance";
 import {
-  formatTransferDescription,
+  buildTransferDescription,
+  isIntraAccountTrader,
   resolveTransferKind,
 } from "@/shared/lib/domain/transfer-labels";
 import { getOperatorId } from "@/shared/lib/auth/get-operator";
@@ -383,6 +384,12 @@ export async function createTransfer(input: CreateTransferInput) {
         .single(),
     );
 
+  const intraAccount = isIntraAccountTrader(
+    parsed.kind,
+    parsed.from_account_id,
+    parsed.to_account_id,
+  );
+
   const debit = await createMovementRow({
     type: "transfer",
     account_id: parsed.from_account_id,
@@ -394,11 +401,12 @@ export async function createTransfer(input: CreateTransferInput) {
     occurred_at: parsed.occurred_at,
     description:
       parsed.description ??
-      formatTransferDescription(
-        parsed.kind,
-        "debit",
-        toAccount?.name ?? "destino",
-      ),
+      buildTransferDescription(parsed.kind, "debit", {
+        counterAccountName: toAccount?.name ?? "destino",
+        fromCurrencyCode: fromCurrency.code,
+        toCurrencyCode: toCurrency.code,
+        intraAccount,
+      }),
     external_id: parsed.external_id,
     transfer_group_id: transferGroupId,
     exchange_rate: fromCurrency.last_rate_brl,
@@ -409,9 +417,12 @@ export async function createTransfer(input: CreateTransferInput) {
     ),
     metadata: {
       transfer_kind: parsed.kind,
+      intra_account: intraAccount,
       expected_received: parsed.expected_received_amount,
       fee_amount: parsed.fee_amount,
       to_currency_id: parsed.to_currency_id,
+      from_currency_code: fromCurrency.code,
+      to_currency_code: toCurrency.code,
     },
   });
 
@@ -432,11 +443,12 @@ export async function createTransfer(input: CreateTransferInput) {
       direction: "credit",
       status: "completed",
       occurred_at: parsed.occurred_at,
-      description: formatTransferDescription(
-        parsed.kind,
-        "credit",
-        fromAccount?.name ?? "origem",
-      ),
+      description: buildTransferDescription(parsed.kind, "credit", {
+        counterAccountName: fromAccount?.name ?? "origem",
+        fromCurrencyCode: fromCurrency.code,
+        toCurrencyCode: toCurrency.code,
+        intraAccount,
+      }),
       external_id: parsed.external_id,
       transfer_group_id: transferGroupId,
       exchange_rate: toCurrency.last_rate_brl,
@@ -445,7 +457,12 @@ export async function createTransfer(input: CreateTransferInput) {
         toCurrency.code,
         toCurrency.last_rate_brl,
       ),
-      metadata: { transfer_kind: parsed.kind },
+      metadata: {
+        transfer_kind: parsed.kind,
+        intra_account: intraAccount,
+        from_currency_code: fromCurrency.code,
+        to_currency_code: toCurrency.code,
+      },
     });
     recalcPairs.push({
       accountId: parsed.to_account_id,
@@ -498,10 +515,15 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
     direction: "credit",
     status: "completed",
     occurred_at: parsed.occurred_at ?? debit.occurred_at,
-    description: formatTransferDescription(
+    description: buildTransferDescription(
       resolveTransferKind(metadata),
       "credit",
-      fromAccount?.name ?? "origem",
+      {
+        counterAccountName: fromAccount?.name ?? "origem",
+        fromCurrencyCode: metadata.from_currency_code as string | undefined,
+        toCurrencyCode: metadata.to_currency_code as string | undefined,
+        intraAccount: metadata.intra_account === true,
+      },
     ),
     external_id: debit.external_id,
     transfer_group_id: parsed.transfer_group_id,
@@ -513,6 +535,9 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
     ),
     metadata: {
       transfer_kind: resolveTransferKind(metadata),
+      intra_account: metadata.intra_account === true,
+      from_currency_code: metadata.from_currency_code,
+      to_currency_code: metadata.to_currency_code,
     },
   });
 

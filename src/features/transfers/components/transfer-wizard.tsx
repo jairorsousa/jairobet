@@ -68,11 +68,52 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
     (b) => b.currency_id === form.from_currency_id,
   );
 
+  const isTrader = form.kind === "trader";
+
   function updateField<K extends keyof CreateTransferInput>(
     key: K,
     value: CreateTransferInput[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleKindChange(kind: CreateTransferInput["kind"]) {
+    setForm((prev) => {
+      const next = { ...prev, kind };
+      if (kind === "trader" && prev.from_account_id) {
+        next.to_account_id = prev.from_account_id;
+        if (prev.to_currency_id === prev.from_currency_id) {
+          next.to_currency_id = "";
+        }
+        next.status = "completed";
+      } else if (
+        kind !== "trader" &&
+        prev.from_account_id &&
+        prev.to_account_id === prev.from_account_id
+      ) {
+        next.to_account_id = "";
+        next.to_currency_id = "";
+      }
+      return next;
+    });
+  }
+
+  function handleFromAccountChange(accountId: string) {
+    const account = accounts.find((a) => a.id === accountId);
+    setForm((prev) => {
+      const next: Partial<CreateTransferInput> = {
+        ...prev,
+        from_account_id: accountId,
+        from_currency_id: account?.default_currency_id ?? "",
+      };
+      if (prev.kind === "trader") {
+        next.to_account_id = accountId;
+        if (prev.to_currency_id === next.from_currency_id) {
+          next.to_currency_id = "";
+        }
+      }
+      return next;
+    });
   }
 
   async function handleSubmit() {
@@ -152,7 +193,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
             <Select
               value={form.kind ?? "transfer"}
               onValueChange={(v) =>
-                v && updateField("kind", v as CreateTransferInput["kind"])
+                v && handleKindChange(v as CreateTransferInput["kind"])
               }
             >
               <SelectTrigger className="w-full">
@@ -174,15 +215,7 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 <Label>Conta de origem</Label>
                 <Select
                   value={form.from_account_id ?? ""}
-                  onValueChange={(v) => {
-                    if (!v) return;
-                    const account = accounts.find((a) => a.id === v);
-                    updateField("from_account_id", v);
-                    updateField(
-                      "from_currency_id",
-                      account?.default_currency_id ?? "",
-                    );
-                  }}
+                  onValueChange={(v) => v && handleFromAccountChange(v)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione" />
@@ -227,7 +260,44 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
             </>
           )}
 
-          {step === 1 && (
+          {step === 1 && isTrader && (
+            <>
+              <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Trade na mesma conta{" "}
+                <span className="font-medium text-foreground">
+                  {fromAccount?.name}
+                </span>
+                . Escolha a moeda que você vai receber.
+              </p>
+              <div className="space-y-2">
+                <Label>Moeda de destino</Label>
+                <Select
+                  value={form.to_currency_id ?? ""}
+                  onValueChange={(v) => v && updateField("to_currency_id", v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione a moeda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fromAccount?.balances
+                      .filter((b) => b.currency_id !== form.from_currency_id)
+                      .map((b) => (
+                        <SelectItem key={b.currency_id} value={b.currency_id}>
+                          {b.currency.code} — saldo{" "}
+                          {formatMoney(
+                            b.calculated_balance,
+                            b.currency.code,
+                            b.currency.decimal_places,
+                          )}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {step === 1 && !isTrader && (
             <>
               <div className="space-y-2">
                 <Label>Conta de destino</Label>
@@ -293,18 +363,21 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor esperado no destino</Label>
+                <Label>
+                  {isTrader ? "Quantidade recebida" : "Valor esperado no destino"}
+                </Label>
                 <Input
                   type="number"
                   step="any"
                   min="0"
                   value={form.expected_received_amount || ""}
-                  onChange={(e) =>
-                    updateField(
-                      "expected_received_amount",
-                      parseFloat(e.target.value) || 0,
-                    )
-                  }
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    updateField("expected_received_amount", value);
+                    if (isTrader) {
+                      updateField("received_amount", value);
+                    }
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -396,8 +469,12 @@ export function TransferWizard({ accounts }: TransferWizardProps) {
                 {fromAccount?.name} ({fromCurrency?.code})
               </p>
               <p>
-                <span className="text-muted-foreground">Para: </span>
-                {toAccount?.name} ({toCurrency?.code})
+                <span className="text-muted-foreground">
+                  {isTrader ? "Recebe: " : "Para: "}
+                </span>
+                {isTrader
+                  ? `${toAccount?.name} (${toCurrency?.code})`
+                  : `${toAccount?.name} (${toCurrency?.code})`}
               </p>
               <p>
                 <span className="text-muted-foreground">Enviado: </span>
