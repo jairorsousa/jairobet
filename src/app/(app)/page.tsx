@@ -94,6 +94,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <DashboardAccountGroups
               accounts={data.accounts}
               holderId={data.holderId}
+              flaggedAccountIds={data.flaggedAccountIds}
             />
           </section>
 

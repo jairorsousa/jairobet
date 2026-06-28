@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 interface DashboardAccountGroupsProps {
   accounts: AccountWithDetails[];
   holderId: string;
+  flaggedAccountIds?: string[];
 }
 
 const typeOrder: AccountType[] = ["bank", "crypto", "betting"];
@@ -21,7 +22,9 @@ const typeOrder: AccountType[] = ["bank", "crypto", "betting"];
 export function DashboardAccountGroups({
   accounts,
   holderId,
+  flaggedAccountIds = [],
 }: DashboardAccountGroupsProps) {
+  const flagged = new Set(flaggedAccountIds);
   const filtered =
     holderId === "all"
       ? accounts
@@ -65,9 +68,16 @@ export function DashboardAccountGroups({
               </span>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {group.map((account) => (
+              {group.map((account) => {
+                const hasAlert = flagged.has(account.id);
+                return (
                 <Link key={account.id} href={`/contas/${account.id}`}>
-                  <Card className="glass-card border-border/50 transition-colors hover:border-primary/30">
+                  <Card
+                    className={cn(
+                      "glass-card border-border/50 transition-colors hover:border-primary/30",
+                      hasAlert && "border-destructive/40",
+                    )}
+                  >
                     <CardHeader className="flex flex-row items-start justify-between pb-2">
                       <div className="space-y-1">
                         <CardTitle className="text-base">{account.name}</CardTitle>
@@ -78,7 +88,11 @@ export function DashboardAccountGroups({
                             : ""}
                         </p>
                       </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
+                      {hasAlert ? (
+                        <AlertTriangle className="size-4 text-destructive" />
+                      ) : (
+                        <ChevronRight className="size-4 text-muted-foreground" />
+                      )}
                     </CardHeader>
                     <CardContent>
                       <p className="font-display text-xl text-gradient-gold">
@@ -87,7 +101,8 @@ export function DashboardAccountGroups({
                     </CardContent>
                   </Card>
                 </Link>
-              ))}
+              );
+              })}
             </div>
           </section>
         );

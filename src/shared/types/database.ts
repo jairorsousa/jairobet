@@ -115,3 +115,38 @@ export interface MovementWithDetails extends Movement {
 export interface PendingTransfer extends MovementWithDetails {
   credit_movement: Movement | null;
 }
+
+export interface Reconciliation {
+  id: string;
+  operator_id: string;
+  account_id: string;
+  currency_id: string;
+  reconciled_at: string;
+  calculated_balance: number;
+  reported_balance: number;
+  difference: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReconciliationWithDetails extends Reconciliation {
+  currency: Currency;
+  account: Pick<Account, "id" | "name" | "type"> & {
+    holder: Pick<Holder, "id" | "name">;
+  };
+}
+
+export interface ReconciliationOverviewRow {
+  account_id: string;
+  account_name: string;
+  account_type: AccountType;
+  holder_name: string;
+  currency_id: string;
+  currency_code: string;
+  currency_decimal_places: number;
+  currency_rate_brl: number;
+  calculated_balance: number;
+  last_reconciliation: Reconciliation | null;
+  days_since_reconciliation: number | null;
+}

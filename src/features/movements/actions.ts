@@ -145,6 +145,8 @@ function revalidateMovementPaths() {
   revalidatePath("/movimentacoes");
   revalidatePath("/transferencias");
   revalidatePath("/contas");
+  revalidatePath("/conciliacao");
+  revalidatePath("/alertas");
   revalidatePath("/");
 }
 

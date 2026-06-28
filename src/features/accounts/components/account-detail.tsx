@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteAccount } from "@/features/accounts/actions";
 import { AccountForm } from "@/features/accounts/components/account-form";
 import { MovementsList } from "@/features/movements/components/movements-list";
+import { ReconciliationHistory } from "@/features/reconciliation/components/reconciliation-history";
 import {
   accountStatusColors,
   accountStatusLabels,
@@ -35,6 +36,7 @@ import type {
   Currency,
   Holder,
   MovementWithDetails,
+  ReconciliationWithDetails,
 } from "@/shared/types/database";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,7 @@ interface AccountDetailProps {
   holders: Holder[];
   currencies: Currency[];
   movements: MovementWithDetails[];
+  reconciliations: ReconciliationWithDetails[];
   selectableAccounts: AccountWithDetails[];
 }
 
@@ -51,6 +54,7 @@ export function AccountDetail({
   holders,
   currencies,
   movements,
+  reconciliations,
   selectableAccounts,
 }: AccountDetailProps) {
   const router = useRouter();
@@ -120,6 +124,9 @@ export function AccountDetail({
           <TabsTrigger value="movimentacoes">
             Movimentações ({movements.length})
           </TabsTrigger>
+          <TabsTrigger value="conciliacoes">
+            Conciliações ({reconciliations.length})
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="resumo" className="mt-4">
           <Card className="glass-card border-border/50">
@@ -186,6 +193,9 @@ export function AccountDetail({
             movements={movements}
             accounts={selectableAccounts}
           />
+        </TabsContent>
+        <TabsContent value="conciliacoes" className="mt-4">
+          <ReconciliationHistory items={reconciliations} />
         </TabsContent>
       </Tabs>
 

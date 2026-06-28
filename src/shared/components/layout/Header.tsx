@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { AlertsBell } from "@/features/alerts/components/alerts-bell";
 import { ThemeSwitcher } from "@/shared/components/ui/theme-switcher";
 
 interface HeaderProps {
@@ -22,6 +24,9 @@ export function Header({ title, icon, rightAction }: HeaderProps) {
       </div>
       <div className="flex items-center gap-2">
         {rightAction}
+        <Suspense fallback={null}>
+          <AlertsBell />
+        </Suspense>
         <ThemeSwitcher />
       </div>
     </header>

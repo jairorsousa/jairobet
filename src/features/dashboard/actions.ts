@@ -1,8 +1,10 @@
 "use server";
 
+import { getAlerts } from "@/features/alerts/actions";
 import { listAccounts } from "@/features/accounts/actions";
 import { listHolders } from "@/features/holders/actions";
 import { listPendingTransfers } from "@/features/movements/actions";
+import { accountsWithAlertIssues } from "@/shared/lib/domain/alerts";
 import { accountTypeLabels } from "@/shared/constants/labels";
 import { createClient } from "@/shared/lib/supabase/server";
 import type { AccountWithDetails, PendingTransfer } from "@/shared/types/database";
@@ -17,6 +19,7 @@ export interface DashboardData extends DashboardComputed {
   holders: Awaited<ReturnType<typeof listHolders>>;
   accounts: AccountWithDetails[];
   pendingTransfers: PendingTransfer[];
+  flaggedAccountIds: string[];
   holderId: string;
   period: DashboardPeriod;
 }
@@ -51,12 +54,14 @@ export async function getDashboardData(
   holderId = "all",
   period: DashboardPeriod = "30d",
 ): Promise<DashboardData> {
-  const [holders, accounts, pendingTransfers, movements] = await Promise.all([
-    listHolders(),
-    listAccounts({ status: "all" }),
-    listPendingTransfers(),
-    fetchAllMovements(),
-  ]);
+  const [holders, accounts, pendingTransfers, movements, alerts] =
+    await Promise.all([
+      listHolders(),
+      listAccounts({ status: "all" }),
+      listPendingTransfers(),
+      fetchAllMovements(),
+      getAlerts(),
+    ]);
 
   const computed = computeDashboard(
     accounts,
@@ -72,6 +77,7 @@ export async function getDashboardData(
     holders,
     accounts,
     pendingTransfers,
+    flaggedAccountIds: [...accountsWithAlertIssues(alerts)],
     holderId,
     period,
   };
