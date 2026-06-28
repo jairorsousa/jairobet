@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listActiveBanks } from "@/features/banks/actions";
+import { listActiveBettingHouses } from "@/features/betting-houses/actions";
 import { listCurrencies } from "@/features/currencies/actions";
 import { listActiveCryptoBrokers } from "@/features/crypto-brokers/actions";
 import { AccountForm } from "@/features/accounts/components/account-form";
@@ -15,12 +16,14 @@ interface NovaContaPageProps {
 
 export default async function NovaContaPage({ searchParams }: NovaContaPageProps) {
   const params = await searchParams;
-  const [holders, banks, cryptoBrokers, currencies] = await Promise.all([
-    listActiveHolders(),
-    listActiveBanks(),
-    listActiveCryptoBrokers(),
-    listCurrencies(),
-  ]);
+  const [holders, banks, cryptoBrokers, bettingHouses, currencies] =
+    await Promise.all([
+      listActiveHolders(),
+      listActiveBanks(),
+      listActiveCryptoBrokers(),
+      listActiveBettingHouses(),
+      listCurrencies(),
+    ]);
 
   const defaultType = (["bank", "crypto", "betting"].includes(params.tipo ?? "")
     ? params.tipo
@@ -28,6 +31,8 @@ export default async function NovaContaPage({ searchParams }: NovaContaPageProps
 
   const missingBank = defaultType === "bank" && banks.length === 0;
   const missingBroker = defaultType === "crypto" && cryptoBrokers.length === 0;
+  const missingBettingHouse =
+    defaultType === "betting" && bettingHouses.length === 0;
 
   return (
     <>
@@ -64,6 +69,15 @@ export default async function NovaContaPage({ searchParams }: NovaContaPageProps
                 <Button className="mt-4">Ir para corretoras</Button>
               </Link>
             </div>
+          ) : missingBettingHouse ? (
+            <div className="glass-card rounded-xl border border-border/50 p-8 text-center">
+              <p className="text-muted-foreground">
+                Cadastre ao menos uma casa de apostas antes de criar esta conta.
+              </p>
+              <Link href="/casas-apostas">
+                <Button className="mt-4">Ir para casas de apostas</Button>
+              </Link>
+            </div>
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
@@ -88,6 +102,7 @@ export default async function NovaContaPage({ searchParams }: NovaContaPageProps
                 holders={holders}
                 banks={banks}
                 cryptoBrokers={cryptoBrokers}
+                bettingHouses={bettingHouses}
                 currencies={currencies}
                 defaultType={defaultType}
               />

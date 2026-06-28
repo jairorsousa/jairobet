@@ -104,6 +104,7 @@ async function resolveInstitutionFields(
       institution: data.name,
       bank_id: parsed.bank_id!,
       crypto_broker_id: null,
+      betting_house_id: null,
     };
   }
 
@@ -118,13 +119,21 @@ async function resolveInstitutionFields(
       institution: data.name,
       bank_id: null,
       crypto_broker_id: parsed.crypto_broker_id!,
+      betting_house_id: null,
     };
   }
 
+  const { data, error } = await supabase
+    .from("betting_houses")
+    .select("name")
+    .eq("id", parsed.betting_house_id!)
+    .single();
+  if (error || !data) throw new Error("Casa de apostas inválida");
   return {
-    institution: parsed.institution!.trim(),
+    institution: data.name,
     bank_id: null,
     crypto_broker_id: null,
+    betting_house_id: parsed.betting_house_id!,
   };
 }
 
@@ -155,6 +164,7 @@ export async function createAccount(input: CreateAccountInput) {
       institution: institutionFields.institution,
       bank_id: institutionFields.bank_id,
       crypto_broker_id: institutionFields.crypto_broker_id,
+      betting_house_id: institutionFields.betting_house_id,
       default_currency_id: parsed.default_currency_id,
       initial_balance_date: parsed.initial_balance_date,
       status: parsed.status,
@@ -191,6 +201,7 @@ export async function createAccount(input: CreateAccountInput) {
   revalidatePath("/titulares");
   revalidatePath("/bancos");
   revalidatePath("/corretoras");
+  revalidatePath("/casas-apostas");
   revalidatePath("/");
   return account as Account;
 }
@@ -218,6 +229,7 @@ export async function updateAccount(input: UpdateAccountInput) {
       institution: institutionFields.institution,
       bank_id: institutionFields.bank_id,
       crypto_broker_id: institutionFields.crypto_broker_id,
+      betting_house_id: institutionFields.betting_house_id,
       default_currency_id: parsed.default_currency_id,
       initial_balance_date: parsed.initial_balance_date,
       status: parsed.status,
@@ -254,6 +266,7 @@ export async function updateAccount(input: UpdateAccountInput) {
   revalidatePath(`/contas/${parsed.id}`);
   revalidatePath("/bancos");
   revalidatePath("/corretoras");
+  revalidatePath("/casas-apostas");
   revalidatePath("/");
   return account as Account;
 }

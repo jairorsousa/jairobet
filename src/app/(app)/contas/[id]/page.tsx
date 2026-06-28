@@ -5,6 +5,7 @@ import { listAccountMovements } from "@/features/movements/actions";
 import { listReconciliations } from "@/features/reconciliation/actions";
 import { AccountDetail } from "@/features/accounts/components/account-detail";
 import { listActiveBanks } from "@/features/banks/actions";
+import { listActiveBettingHouses } from "@/features/betting-houses/actions";
 import { listCurrencies } from "@/features/currencies/actions";
 import { listActiveCryptoBrokers } from "@/features/crypto-brokers/actions";
 import { listHolders } from "@/features/holders/actions";
@@ -23,6 +24,7 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
       allHolders,
       banks,
       cryptoBrokers,
+      bettingHouses,
       currencies,
       movements,
       reconciliations,
@@ -31,6 +33,7 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
       listHolders(),
       listActiveBanks(),
       listActiveCryptoBrokers(),
+      listActiveBettingHouses(),
       listCurrencies(),
       listAccountMovements(id),
       listReconciliations(id),
@@ -52,6 +55,7 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
             holders={holders}
             banks={banks}
             cryptoBrokers={cryptoBrokers}
+            bettingHouses={bettingHouses}
             currencies={currencies}
             movements={movements}
             reconciliations={reconciliations}

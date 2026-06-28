@@ -44,6 +44,7 @@ export interface Account {
   pending_balance: number;
   bank_id: string | null;
   crypto_broker_id: string | null;
+  betting_house_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +98,20 @@ export interface CryptoBroker {
 }
 
 export interface CryptoBrokerWithStats extends CryptoBroker {
+  account_count: number;
+}
+
+export interface BettingHouse {
+  id: string;
+  operator_id: string;
+  name: string;
+  notes: string | null;
+  status: HolderStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BettingHouseWithStats extends BettingHouse {
   account_count: number;
 }
 

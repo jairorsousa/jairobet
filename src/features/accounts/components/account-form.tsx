@@ -32,6 +32,7 @@ import type {
   AccountType,
   AccountWithDetails,
   Bank,
+  BettingHouse,
   CryptoBroker,
   Currency,
   Holder,
@@ -41,6 +42,7 @@ interface AccountFormProps {
   holders: Holder[];
   banks: Bank[];
   cryptoBrokers: CryptoBroker[];
+  bettingHouses: BettingHouse[];
   currencies: Currency[];
   account?: AccountWithDetails;
   defaultType?: AccountType;
@@ -50,6 +52,7 @@ export function AccountForm({
   holders,
   banks,
   cryptoBrokers,
+  bettingHouses,
   currencies,
   account,
   defaultType = "bank",
@@ -85,6 +88,11 @@ export function AccountForm({
     cryptoBrokers.find((b) => b.name === account?.institution)?.id ??
     "";
 
+  const resolvedBettingHouseId =
+    account?.betting_house_id ??
+    bettingHouses.find((h) => h.name === account?.institution)?.id ??
+    "";
+
   const form = useForm<CreateAccountInput>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: {
@@ -94,6 +102,7 @@ export function AccountForm({
       institution: account?.institution ?? "",
       bank_id: resolvedBankId,
       crypto_broker_id: resolvedBrokerId,
+      betting_house_id: resolvedBettingHouseId,
       default_currency_id:
         account?.default_currency_id ?? brlCurrency?.id ?? "",
       initial_balance_date:
@@ -118,6 +127,7 @@ export function AccountForm({
   const holderId = form.watch("holder_id");
   const bankId = form.watch("bank_id");
   const brokerId = form.watch("crypto_broker_id");
+  const bettingHouseId = form.watch("betting_house_id");
   const isCrypto = accountType === "crypto";
   const isBetting = accountType === "betting";
   const isBank = accountType === "bank";
@@ -137,16 +147,24 @@ export function AccountForm({
       const broker = cryptoBrokers.find((b) => b.id === brokerId);
       if (broker) form.setValue("name", `${broker.name} · ${holder.name}`);
     }
+
+    if (isBetting && bettingHouseId) {
+      const house = bettingHouses.find((h) => h.id === bettingHouseId);
+      if (house) form.setValue("name", `${house.name} · ${holder.name}`);
+    }
   }, [
     holderId,
     bankId,
     brokerId,
+    bettingHouseId,
     isBank,
     isCrypto,
+    isBetting,
     isEditing,
     holders,
     banks,
     cryptoBrokers,
+    bettingHouses,
     form,
   ]);
 
@@ -174,6 +192,7 @@ export function AccountForm({
     form.setValue("type", type);
     form.setValue("bank_id", undefined);
     form.setValue("crypto_broker_id", undefined);
+    form.setValue("betting_house_id", undefined);
     form.setValue("institution", "");
     if (type !== "crypto") {
       const currencyId = brlCurrency?.id ?? currencies[0]?.id ?? "";
@@ -305,15 +324,36 @@ export function AccountForm({
 
           {isBetting && (
             <div className="space-y-2">
-              <Label htmlFor="institution">Casa de apostas</Label>
-              <Input
-                id="institution"
-                {...form.register("institution")}
-                placeholder="Ex.: Bet365"
-              />
-              {form.formState.errors.institution && (
+              <Label>Casa de apostas</Label>
+              <Select
+                value={form.watch("betting_house_id") ?? ""}
+                onValueChange={(v) => v && form.setValue("betting_house_id", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a casa de apostas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bettingHouses.map((house) => (
+                    <SelectItem key={house.id} value={house.id}>
+                      {house.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {bettingHouses.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  <Link
+                    href="/casas-apostas"
+                    className="text-primary hover:underline"
+                  >
+                    Cadastre uma casa de apostas
+                  </Link>{" "}
+                  antes de criar a conta.
+                </p>
+              )}
+              {form.formState.errors.betting_house_id && (
                 <p className="text-sm text-destructive">
-                  {form.formState.errors.institution.message}
+                  {form.formState.errors.betting_house_id.message}
                 </p>
               )}
             </div>

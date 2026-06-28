@@ -34,6 +34,7 @@ import { formatMoney } from "@/shared/lib/money/format";
 import type {
   AccountWithDetails,
   Bank,
+  BettingHouse,
   CryptoBroker,
   Currency,
   Holder,
@@ -47,6 +48,7 @@ interface AccountDetailProps {
   holders: Holder[];
   banks: Bank[];
   cryptoBrokers: CryptoBroker[];
+  bettingHouses: BettingHouse[];
   currencies: Currency[];
   movements: MovementWithDetails[];
   reconciliations: ReconciliationWithDetails[];
@@ -58,6 +60,7 @@ export function AccountDetail({
   holders,
   banks,
   cryptoBrokers,
+  bettingHouses,
   currencies,
   movements,
   reconciliations,
@@ -97,6 +100,7 @@ export function AccountDetail({
           holders={holders}
           banks={banks}
           cryptoBrokers={cryptoBrokers}
+          bettingHouses={bettingHouses}
           currencies={currencies}
         />
       </div>

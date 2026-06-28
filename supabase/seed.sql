@@ -9,6 +9,7 @@ DECLARE
   h2_id UUID;
   bank_nubank UUID;
   broker_binance UUID;
+  house_betx UUID;
   acc_bank UUID;
   acc_bet UUID;
   acc_crypto UUID;
@@ -72,14 +73,24 @@ BEGIN
     VALUES (acc_bank, brl_id, 5000, 5000);
   END IF;
 
+  SELECT id INTO house_betx FROM betting_houses
+  WHERE operator_id = op_id AND name = 'Casa X';
+
+  IF house_betx IS NULL THEN
+    INSERT INTO betting_houses (operator_id, name, notes, status)
+    VALUES (op_id, 'Casa X', 'Casa de apostas demo', 'active')
+    RETURNING id INTO house_betx;
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM accounts WHERE operator_id = op_id AND name = 'Bet Demo'
   ) THEN
     INSERT INTO accounts (
-      operator_id, holder_id, name, type, institution,
+      operator_id, holder_id, name, type, institution, betting_house_id,
       default_currency_id, initial_balance_date, status
     ) VALUES (
-      op_id, h1_id, 'Bet Demo', 'betting', 'Casa X', brl_id, CURRENT_DATE, 'active'
+      op_id, h1_id, 'Bet Demo', 'betting', 'Casa X', house_betx,
+      brl_id, CURRENT_DATE, 'active'
     ) RETURNING id INTO acc_bet;
 
     INSERT INTO account_currencies (account_id, currency_id, initial_balance, calculated_balance)
@@ -101,5 +112,5 @@ BEGIN
     VALUES (acc_crypto, brl_id, 2500, 2500);
   END IF;
 
-  RAISE NOTICE 'JairoBet seed: titulares, bancos, corretoras e contas demo prontos para o operador %', op_id;
+  RAISE NOTICE 'JairoBet seed: titulares, bancos, corretoras, casas de apostas e contas demo prontos para o operador %', op_id;
 END $$;

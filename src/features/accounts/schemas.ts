@@ -20,6 +20,7 @@ const accountBaseSchema = z.object({
   institution: z.string().max(120).optional(),
   bank_id: z.string().uuid().optional(),
   crypto_broker_id: z.string().uuid().optional(),
+  betting_house_id: z.string().uuid().optional(),
   default_currency_id: z.string().uuid(),
   initial_balance_date: z.string().min(1),
   status: accountStatusSchema,
@@ -35,7 +36,7 @@ const accountBaseSchema = z.object({
 
 type InstitutionValidationInput = Pick<
   z.infer<typeof accountBaseSchema>,
-  "type" | "bank_id" | "crypto_broker_id" | "institution"
+  "type" | "bank_id" | "crypto_broker_id" | "betting_house_id" | "institution"
 >;
 
 function validateInstitution(
@@ -56,11 +57,11 @@ function validateInstitution(
       path: ["crypto_broker_id"],
     });
   }
-  if (data.type === "betting" && !data.institution?.trim()) {
+  if (data.type === "betting" && !data.betting_house_id) {
     ctx.addIssue({
       code: "custom",
-      message: "Informe a casa de apostas",
-      path: ["institution"],
+      message: "Selecione uma casa de apostas",
+      path: ["betting_house_id"],
     });
   }
 }
