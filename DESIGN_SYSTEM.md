@@ -1,13 +1,13 @@
-# Design System - World Cup Bets
+# Design System - Whale Games Theme (JairoBet)
 
-Este documento descreve o design system do projeto, incluindo tokens de design, componentes, animações e padrões visuais.
+Este documento descreve o design system do projeto, baseado na estética premium e tátil do ecossistema Whale Games (jogos Web3/Telegram), incluindo tokens de design, componentes, animações e padrões visuais.
 
 ## Tema e Identidade Visual
 
-O projeto utiliza um tema inspirado na Copa do Mundo com duas variantes:
+O projeto utiliza um tema arrojado e moderno com duas variantes:
 
-- **Dark Mode** (padrão): Fundo escuro com acentos em dourado e verde
-- **Light Mode**: Fundo claro mantendo a identidade de cores
+- **Dark Mode** (padrão): Fundo escuro profundo (quase preto) com acentos vibrantes em ciano elétrico/neon e dourado
+- **Light Mode**: Fundo claro mantendo a hierarquia e vibração de cores
 
 ### Paleta de Cores
 
@@ -15,19 +15,19 @@ O projeto utiliza um tema inspirado na Copa do Mundo com duas variantes:
 
 | Token | Dark Mode | Light Mode | Uso |
 |-------|-----------|------------|-----|
-| `--primary` | `hsl(45, 93%, 47%)` | `hsl(45, 93%, 42%)` | Dourado/Troféu - CTAs, destaques |
-| `--secondary` | `hsl(142, 70%, 35%)` | `hsl(142, 70%, 35%)` | Verde Campo - Elementos secundários |
-| `--accent` | `hsl(199, 89%, 48%)` | `hsl(199, 89%, 48%)` | Azul Elétrico - Links, badges |
+| `--primary` | `hsl(195, 100%, 50%)` | `hsl(195, 90%, 40%)` | Ciano Elétrico - CTAs, destaques, elementos de foco |
+| `--secondary` | `hsl(255, 85%, 65%)` | `hsl(255, 75%, 55%)` | Roxo Vibrante - Badges, avatares, elementos secundários |
+| `--accent` | `hsl(45, 100%, 50%)` | `hsl(45, 90%, 45%)` | Dourado Whale - Moedas, recompensas (rewards), links |
 | `--destructive` | `hsl(0, 84%, 60%)` | `hsl(0, 84%, 60%)` | Vermelho - Erros, logout |
 
 #### Cores de Superfície
 
 | Token | Dark Mode | Light Mode | Uso |
 |-------|-----------|------------|-----|
-| `--background` | `hsl(222, 47%, 6%)` | `hsl(60, 9%, 98%)` | Fundo da página |
-| `--card` | `hsl(222, 47%, 9%)` | `hsl(0, 0%, 100%)` | Cards, containers |
-| `--muted` | `hsl(222, 30%, 15%)` | `hsl(210, 40%, 96%)` | Elementos desabilitados |
-| `--border` | `hsl(222, 30%, 18%)` | `hsl(214, 32%, 91%)` | Bordas |
+| `--background` | `hsl(225, 45%, 4%)` | `hsl(210, 40%, 98%)` | Fundo principal da página (deep midnight/dark) |
+| `--card` | `hsl(225, 40%, 8%)` | `hsl(0, 0%, 100%)` | Cards, containers, glassmorphism base |
+| `--muted` | `hsl(225, 30%, 15%)` | `hsl(210, 20%, 94%)` | Elementos desabilitados ou secundários |
+| `--border` | `hsl(225, 30%, 16%)` | `hsl(214, 32%, 90%)` | Bordas e delimitadores sutis |
 
 #### Cores Semânticas
 
@@ -40,30 +40,30 @@ O projeto utiliza um tema inspirado na Copa do Mundo com duas variantes:
 ### Gradientes
 
 ```css
-/* Gradiente Dourado - CTAs premium */
---gradient-gold: linear-gradient(135deg, hsl(45, 93%, 47%) 0%, hsl(38, 92%, 50%) 100%);
+/* Gradiente Glow - Efeitos neon premium */
+--gradient-glow: linear-gradient(135deg, hsl(195 100% 50%) 0%, hsl(255 85% 65%) 100%);
 
-/* Gradiente Verde Campo */
---gradient-field: linear-gradient(135deg, hsl(142, 70%, 35%) 0%, hsl(142, 70%, 25%) 100%);
+/* Gradiente Dourado - Recompensas e moedas */
+--gradient-gold: linear-gradient(135deg, hsl(45 100% 50%) 0%, hsl(35 100% 50%) 100%);
 
-/* Gradiente Card */
---gradient-card: linear-gradient(180deg, hsl(222, 47%, 11%) 0%, hsl(222, 47%, 8%) 100%);
+/* Gradiente Card - Profundidade sutil */
+--gradient-card: linear-gradient(180deg, hsl(225 40% 12%) 0%, hsl(225 40% 7%) 100%);
 
-/* Gradiente Hero */
---gradient-hero: linear-gradient(180deg, hsl(222, 47%, 6%) 0%, hsl(222, 47%, 10%) 50%, hsl(222, 47%, 6%) 100%);
+/* Gradiente Hero - Impacto visual de fundo */
+--gradient-hero: linear-gradient(180deg, hsl(225 45% 4%) 0%, hsl(225 40% 12%) 50%, hsl(225 45% 4%) 100%);
 ```
 
 ### Sombras
 
 ```css
-/* Sombra Dourada - Destaque em CTAs */
---shadow-gold: 0 4px 20px -4px hsl(45 93% 47% / 0.3);
+/* Brilho Ciano/Neon - Efeito glow premium */
+--shadow-glow: 0 0 40px hsl(195 100% 50% / 0.25);
 
-/* Sombra de Card */
---shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.4);
+/* Sombra Dourada - Destaque em recompensas */
+--shadow-gold: 0 4px 20px -4px hsl(45 100% 50% / 0.3);
 
-/* Brilho - Efeito glow */
---shadow-glow: 0 0 40px hsl(45 93% 47% / 0.15);
+/* Sombra de Card - Elevação e profundidade */
+--shadow-card: 0 10px 30px -5px hsl(0 0% 0% / 0.5);
 ```
 
 ## Tipografia
@@ -251,34 +251,42 @@ import { Skeleton, SkeletonCircle, SkeletonText } from '@/shared/components/ui/s
 
 ```css
 .glass-card {
-  @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+  @apply bg-card/60 backdrop-blur-2xl border border-border/60 rounded-2xl shadow-2xl;
 }
 ```
 
 ### Gradientes de Texto
 
 ```css
+.text-gradient-glow {
+  background: var(--gradient-glow);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .text-gradient-gold {
   background: var(--gradient-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 ```
 
 ### Backgrounds
 
 ```css
-.gradient-gold   /* Fundo dourado */
-.gradient-field  /* Fundo verde campo */
-.gradient-card   /* Fundo de card com gradiente */
+.gradient-card   /* Fundo de card com gradiente sutil */
+.bg-gradient-hero /* Fundo hero com profundidade */
 .bg-gradient-radial /* Gradiente radial */
 ```
 
 ### Sombras
 
 ```css
-.shadow-gold  /* Sombra dourada para CTAs */
-.shadow-glow  /* Efeito glow */
+.shadow-glow  /* Efeito glow neon para destaques */
+.shadow-gold  /* Sombra dourada para recompensas */
+.shadow-card  /* Sombra profunda para cards */
 ```
 
 ## Responsividade

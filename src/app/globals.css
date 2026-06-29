@@ -51,96 +51,96 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* JairoBet — dark (padrão) */
+/* JairoBet — dark (padrão - Whale Games Design System) */
 :root {
-  --background: hsl(222 47% 6%);
+  --background: hsl(225 45% 4%);
   --foreground: hsl(210 40% 98%);
-  --card: hsl(222 47% 9%);
+  --card: hsl(225 40% 8%);
   --card-foreground: hsl(210 40% 98%);
-  --popover: hsl(222 47% 9%);
+  --popover: hsl(225 40% 10%);
   --popover-foreground: hsl(210 40% 98%);
-  --primary: hsl(45 93% 47%);
-  --primary-foreground: hsl(222 47% 6%);
-  --secondary: hsl(142 70% 35%);
+  --primary: hsl(195 100% 50%);
+  --primary-foreground: hsl(225 45% 4%);
+  --secondary: hsl(255 85% 65%);
   --secondary-foreground: hsl(210 40% 98%);
-  --muted: hsl(222 30% 15%);
+  --muted: hsl(225 30% 15%);
   --muted-foreground: hsl(215 20% 65%);
-  --accent: hsl(199 89% 48%);
-  --accent-foreground: hsl(210 40% 98%);
+  --accent: hsl(45 100% 50%);
+  --accent-foreground: hsl(225 45% 4%);
   --destructive: hsl(0 84% 60%);
   --success: hsl(142 70% 45%);
   --warning: hsl(38 92% 50%);
-  --border: hsl(222 30% 18%);
-  --input: hsl(222 30% 18%);
-  --ring: hsl(45 93% 47%);
-  --chart-1: hsl(45 93% 47%);
-  --chart-2: hsl(142 70% 45%);
-  --chart-3: hsl(199 89% 48%);
-  --chart-4: hsl(38 92% 50%);
+  --border: hsl(225 30% 16%);
+  --input: hsl(225 30% 16%);
+  --ring: hsl(195 100% 50%);
+  --chart-1: hsl(195 100% 50%);
+  --chart-2: hsl(255 85% 65%);
+  --chart-3: hsl(45 100% 50%);
+  --chart-4: hsl(142 70% 45%);
   --chart-5: hsl(0 84% 60%);
-  --radius: 0.75rem;
-  --sidebar: hsl(222 47% 9%);
+  --radius: 1rem;
+  --sidebar: hsl(225 40% 8%);
   --sidebar-foreground: hsl(210 40% 98%);
-  --sidebar-primary: hsl(45 93% 47%);
-  --sidebar-primary-foreground: hsl(222 47% 6%);
-  --sidebar-accent: hsl(222 30% 15%);
+  --sidebar-primary: hsl(195 100% 50%);
+  --sidebar-primary-foreground: hsl(225 45% 4%);
+  --sidebar-accent: hsl(225 30% 15%);
   --sidebar-accent-foreground: hsl(210 40% 98%);
-  --sidebar-border: hsl(222 30% 18%);
-  --sidebar-ring: hsl(45 93% 47%);
+  --sidebar-border: hsl(225 30% 16%);
+  --sidebar-ring: hsl(195 100% 50%);
+  --gradient-glow: linear-gradient(
+    135deg,
+    hsl(195 100% 50%) 0%,
+    hsl(255 85% 65%) 100%
+  );
   --gradient-gold: linear-gradient(
     135deg,
-    hsl(45 93% 47%) 0%,
-    hsl(38 92% 50%) 100%
-  );
-  --gradient-field: linear-gradient(
-    135deg,
-    hsl(142 70% 35%) 0%,
-    hsl(142 70% 25%) 100%
+    hsl(45 100% 50%) 0%,
+    hsl(35 100% 50%) 100%
   );
   --gradient-card: linear-gradient(
     180deg,
-    hsl(222 47% 11%) 0%,
-    hsl(222 47% 8%) 100%
+    hsl(225 40% 12%) 0%,
+    hsl(225 40% 7%) 100%
   );
   --gradient-hero: linear-gradient(
     180deg,
-    hsl(222 47% 6%) 0%,
-    hsl(222 47% 10%) 50%,
-    hsl(222 47% 6%) 100%
+    hsl(225 45% 4%) 0%,
+    hsl(225 40% 12%) 50%,
+    hsl(225 45% 4%) 100%
   );
-  --shadow-gold: 0 4px 20px -4px hsl(45 93% 47% / 0.3);
-  --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.4);
-  --shadow-glow: 0 0 40px hsl(45 93% 47% / 0.15);
+  --shadow-glow: 0 0 40px hsl(195 100% 50% / 0.25);
+  --shadow-gold: 0 4px 20px -4px hsl(45 100% 50% / 0.3);
+  --shadow-card: 0 10px 30px -5px hsl(0 0% 0% / 0.5);
 }
 
 /* JairoBet — light */
 .light {
-  --background: hsl(60 9% 98%);
-  --foreground: hsl(222 47% 11%);
+  --background: hsl(210 40% 98%);
+  --foreground: hsl(225 45% 4%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222 47% 11%);
+  --card-foreground: hsl(225 45% 4%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222 47% 11%);
-  --primary: hsl(45 93% 42%);
-  --primary-foreground: hsl(222 47% 6%);
-  --secondary: hsl(142 70% 35%);
+  --popover-foreground: hsl(225 45% 4%);
+  --primary: hsl(195 90% 40%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(255 75% 55%);
   --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(210 40% 96%);
+  --muted: hsl(210 20% 94%);
   --muted-foreground: hsl(215 16% 47%);
-  --accent: hsl(199 89% 48%);
-  --accent-foreground: hsl(0 0% 100%);
+  --accent: hsl(45 90% 45%);
+  --accent-foreground: hsl(225 45% 4%);
   --destructive: hsl(0 84% 60%);
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
-  --ring: hsl(45 93% 42%);
+  --border: hsl(214 32% 90%);
+  --input: hsl(214 32% 90%);
+  --ring: hsl(195 90% 40%);
   --sidebar: hsl(0 0% 100%);
-  --sidebar-foreground: hsl(222 47% 11%);
-  --sidebar-primary: hsl(45 93% 42%);
-  --sidebar-primary-foreground: hsl(222 47% 6%);
-  --sidebar-accent: hsl(210 40% 96%);
-  --sidebar-accent-foreground: hsl(222 47% 11%);
-  --sidebar-border: hsl(214 32% 91%);
-  --sidebar-ring: hsl(45 93% 42%);
+  --sidebar-foreground: hsl(225 45% 4%);
+  --sidebar-primary: hsl(195 90% 40%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(210 20% 94%);
+  --sidebar-accent-foreground: hsl(225 45% 4%);
+  --sidebar-border: hsl(214 32% 90%);
+  --sidebar-ring: hsl(195 90% 40%);
 }
 
 @layer base {
@@ -173,6 +173,12 @@
     font-family: var(--font-display), sans-serif;
     letter-spacing: 0.02em;
   }
+  .text-gradient-glow {
+    background: var(--gradient-glow);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   .text-gradient-gold {
     background: var(--gradient-gold);
     -webkit-background-clip: text;
@@ -180,13 +186,16 @@
     background-clip: text;
   }
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+    @apply bg-card/60 backdrop-blur-2xl border border-border/60 rounded-2xl shadow-2xl;
   }
   .gradient-card {
     background: var(--gradient-card);
   }
   .bg-gradient-hero {
     background: var(--gradient-hero);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
   }
   .shadow-gold {
     box-shadow: var(--shadow-gold);
