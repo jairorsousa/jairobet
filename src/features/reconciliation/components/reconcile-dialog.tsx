@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -65,7 +65,10 @@ export function ReconcileDialog({
     });
   }, [row, open, form]);
 
-  const reported = form.watch("reported_balance");
+  const reported = useWatch({
+    control: form.control,
+    name: "reported_balance",
+  });
   const difference = useMemo(() => {
     if (!row) return 0;
     return Number(reported) - row.calculated_balance;

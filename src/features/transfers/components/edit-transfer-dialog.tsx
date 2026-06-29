@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,53 @@ interface EditTransferDialogProps {
   onSuccess?: () => void;
 }
 
+interface EditTransferDraft {
+  status: "pending" | "completed";
+  occurredAt: string;
+  externalId: string;
+  description: string;
+  amountDrafts: {
+    sent_amount: string;
+    expected_received_amount: string;
+    received_amount: string;
+    fee_amount: string;
+  };
+}
+
+function buildTransferDraft(transfer: TransferRecord | null): EditTransferDraft {
+  if (!transfer) {
+    return {
+      status: "pending",
+      occurredAt: "",
+      externalId: "",
+      description: "",
+      amountDrafts: {
+        sent_amount: "",
+        expected_received_amount: "",
+        received_amount: "",
+        fee_amount: "",
+      },
+    };
+  }
+
+  const metadata = transfer.metadata as Record<string, unknown>;
+  const expected = metadata.expected_received as number | undefined;
+  const fee = metadata.fee_amount as number | undefined;
+
+  return {
+    status: transfer.status === "completed" ? "completed" : "pending",
+    occurredAt: transfer.occurred_at,
+    externalId: transfer.external_id ?? "",
+    description: transfer.description ?? "",
+    amountDrafts: {
+      sent_amount: formatNumberDraft(transfer.amount),
+      expected_received_amount: formatNumberDraft(expected),
+      received_amount: formatNumberDraft(transfer.credit_movement?.amount),
+      fee_amount: formatNumberDraft(fee ?? 0),
+    },
+  };
+}
+
 export function EditTransferDialog({
   transfer,
   open,
@@ -47,58 +94,55 @@ export function EditTransferDialog({
   onSuccess,
 }: EditTransferDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<"pending" | "completed">("pending");
-  const [occurredAt, setOccurredAt] = useState("");
-  const [externalId, setExternalId] = useState("");
-  const [description, setDescription] = useState("");
-  const [amountDrafts, setAmountDrafts] = useState({
-    sent_amount: "",
-    expected_received_amount: "",
-    received_amount: "",
-    fee_amount: "",
-  });
+  const [drafts, setDrafts] = useState<Record<string, EditTransferDraft>>({});
+  const draftKey = transfer?.transfer_group_id ?? "empty";
+  const defaultDraft = useMemo(
+    () => buildTransferDraft(transfer),
+    [transfer],
+  );
+  const draft = drafts[draftKey] ?? defaultDraft;
 
-  useEffect(() => {
-    if (!transfer || !open) return;
-
-    const metadata = transfer.metadata as Record<string, unknown>;
-    const expected = metadata.expected_received as number | undefined;
-    const fee = metadata.fee_amount as number | undefined;
-
-    setStatus(transfer.status === "completed" ? "completed" : "pending");
-    setOccurredAt(transfer.occurred_at);
-    setExternalId(transfer.external_id ?? "");
-    setDescription(transfer.description ?? "");
-    setAmountDrafts({
-      sent_amount: formatNumberDraft(transfer.amount),
-      expected_received_amount: formatNumberDraft(expected),
-      received_amount: formatNumberDraft(transfer.credit_movement?.amount),
-      fee_amount: formatNumberDraft(fee ?? 0),
-    });
-  }, [transfer, open]);
+  function updateDraft(patch: Partial<EditTransferDraft>) {
+    setDrafts((prev) => ({
+      ...prev,
+      [draftKey]: {
+        ...draft,
+        ...patch,
+      },
+    }));
+  }
 
   function handleDraftChange(
-    field: keyof typeof amountDrafts,
+    field: keyof EditTransferDraft["amountDrafts"],
     raw: string,
   ) {
     if (!isValidDecimalDraft(raw)) return;
-    setAmountDrafts((prev) => ({ ...prev, [field]: raw }));
+    updateDraft({
+      amountDrafts: { ...draft.amountDrafts, [field]: raw },
+    });
   }
 
   async function handleSubmit() {
     if (!transfer?.transfer_group_id) return;
 
-    const sentAmount = parseDecimalDraft(amountDrafts.sent_amount);
-    const expectedAmount = parseDecimalDraft(amountDrafts.expected_received_amount);
-    const receivedAmount = parseDecimalDraft(amountDrafts.received_amount);
-    const feeAmount = parseDecimalDraft(amountDrafts.fee_amount) ?? 0;
+    const sentAmount = parseDecimalDraft(draft.amountDrafts.sent_amount);
+    const expectedAmount = parseDecimalDraft(
+      draft.amountDrafts.expected_received_amount,
+    );
+    const receivedAmount = parseDecimalDraft(
+      draft.amountDrafts.received_amount,
+    );
+    const feeAmount = parseDecimalDraft(draft.amountDrafts.fee_amount) ?? 0;
 
     if (sentAmount === undefined || sentAmount <= 0) {
       toast.error("Informe o valor enviado");
       return;
     }
 
-    if (status === "completed" && (receivedAmount === undefined || receivedAmount <= 0)) {
+    if (
+      draft.status === "completed" &&
+      (receivedAmount === undefined || receivedAmount <= 0)
+    ) {
       toast.error("Informe o valor recebido");
       return;
     }
@@ -111,10 +155,10 @@ export function EditTransferDialog({
         expected_received_amount: expectedAmount,
         received_amount: receivedAmount,
         fee_amount: feeAmount,
-        status,
-        occurred_at: occurredAt,
-        external_id: externalId || undefined,
-        description: description || undefined,
+        status: draft.status,
+        occurred_at: draft.occurredAt,
+        external_id: draft.externalId || undefined,
+        description: draft.description || undefined,
       });
       toast.success("Transferência atualizada");
       onOpenChange(false);
@@ -161,7 +205,7 @@ export function EditTransferDialog({
             <Input
               type="text"
               inputMode="decimal"
-              value={amountDrafts.sent_amount}
+              value={draft.amountDrafts.sent_amount}
               onChange={(e) => handleDraftChange("sent_amount", e.target.value)}
             />
           </div>
@@ -173,7 +217,7 @@ export function EditTransferDialog({
             <Input
               type="text"
               inputMode="decimal"
-              value={amountDrafts.expected_received_amount}
+              value={draft.amountDrafts.expected_received_amount}
               onChange={(e) =>
                 handleDraftChange("expected_received_amount", e.target.value)
               }
@@ -185,7 +229,7 @@ export function EditTransferDialog({
             <Input
               type="text"
               inputMode="decimal"
-              value={amountDrafts.fee_amount}
+              value={draft.amountDrafts.fee_amount}
               onChange={(e) => handleDraftChange("fee_amount", e.target.value)}
             />
           </div>
@@ -193,9 +237,9 @@ export function EditTransferDialog({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select
-              value={status}
+              value={draft.status}
               onValueChange={(v) =>
-                v && setStatus(v as "pending" | "completed")
+                v && updateDraft({ status: v as "pending" | "completed" })
               }
             >
               <SelectTrigger className="w-full">
@@ -208,13 +252,13 @@ export function EditTransferDialog({
             </Select>
           </div>
 
-          {status === "completed" && (
+          {draft.status === "completed" && (
             <div className="space-y-2">
               <Label>Valor efetivamente recebido</Label>
               <Input
                 type="text"
                 inputMode="decimal"
-                value={amountDrafts.received_amount}
+                value={draft.amountDrafts.received_amount}
                 onChange={(e) =>
                   handleDraftChange("received_amount", e.target.value)
                 }
@@ -226,16 +270,16 @@ export function EditTransferDialog({
             <Label>Data</Label>
             <Input
               type="date"
-              value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)}
+              value={draft.occurredAt}
+              onChange={(e) => updateDraft({ occurredAt: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
             <Label>ID da transação (opcional)</Label>
             <Input
-              value={externalId}
-              onChange={(e) => setExternalId(e.target.value)}
+              value={draft.externalId}
+              onChange={(e) => updateDraft({ externalId: e.target.value })}
             />
           </div>
 
@@ -243,8 +287,8 @@ export function EditTransferDialog({
             <Label>Observação</Label>
             <Textarea
               rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={draft.description}
+              onChange={(e) => updateDraft({ description: e.target.value })}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -81,9 +81,19 @@ export function SimpleMovementEditDialog({
     }
   }, [open, movement, form]);
 
-  const selectedAccount = accounts.find(
-    (a) => a.id === form.watch("account_id"),
-  );
+  const selectedAccountId = useWatch({
+    control: form.control,
+    name: "account_id",
+  });
+  const selectedCurrencyId = useWatch({
+    control: form.control,
+    name: "currency_id",
+  });
+  const formMetadata = useWatch({
+    control: form.control,
+    name: "metadata",
+  }) as Record<string, unknown> | undefined;
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
 
   async function onSubmit(values: UpdateSimpleMovementInput) {
     setLoading(true);
@@ -147,7 +157,7 @@ export function SimpleMovementEditDialog({
           <div className="space-y-2">
             <Label>Conta</Label>
             <Select
-              value={form.watch("account_id")}
+              value={selectedAccountId}
               onValueChange={(v) => v && form.setValue("account_id", v)}
             >
               <SelectTrigger className="w-full">
@@ -165,7 +175,7 @@ export function SimpleMovementEditDialog({
           <div className="space-y-2">
             <Label>Moeda</Label>
             <Select
-              value={form.watch("currency_id")}
+              value={selectedCurrencyId}
               onValueChange={(v) => v && form.setValue("currency_id", v)}
             >
               <SelectTrigger className="w-full">
@@ -185,8 +195,7 @@ export function SimpleMovementEditDialog({
               <Label>Status cashback</Label>
               <Select
                 value={
-                  ((form.watch("metadata") as Record<string, unknown>)
-                    ?.cashback_status as string) ??
+                  (formMetadata?.cashback_status as string) ??
                   (metadata.cashback_status as string) ??
                   "pendente"
                 }
@@ -215,8 +224,7 @@ export function SimpleMovementEditDialog({
               <Label>Status rakeback</Label>
               <Select
                 value={
-                  ((form.watch("metadata") as Record<string, unknown>)
-                    ?.rakeback_status as string) ??
+                  (formMetadata?.rakeback_status as string) ??
                   (metadata.rakeback_status as string) ??
                   "pendente"
                 }
@@ -245,8 +253,7 @@ export function SimpleMovementEditDialog({
               <Label>Status bônus</Label>
               <Select
                 value={
-                  ((form.watch("metadata") as Record<string, unknown>)
-                    ?.bonus_status as string) ??
+                  (formMetadata?.bonus_status as string) ??
                   (metadata.bonus_status as string) ??
                   "pendente"
                 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -236,6 +236,18 @@ export function NewMovementDialog({
       description: "",
     },
   });
+  const conversionAccountId = useWatch({
+    control: conversionForm.control,
+    name: "account_id",
+  });
+  const conversionFromCurrencyId = useWatch({
+    control: conversionForm.control,
+    name: "from_currency_id",
+  });
+  const conversionToCurrencyId = useWatch({
+    control: conversionForm.control,
+    name: "to_currency_id",
+  });
 
   const adjustmentForm = useForm({
     resolver: zodResolver(createBalanceAdjustmentSchema),
@@ -247,6 +259,83 @@ export function NewMovementDialog({
       reason: "",
       occurred_at: new Date().toISOString().slice(0, 10),
     },
+  });
+
+  const capitalAccountId = useWatch({
+    control: capitalForm.control,
+    name: "account_id",
+  });
+  const capitalCurrencyId = useWatch({
+    control: capitalForm.control,
+    name: "currency_id",
+  });
+  const feeAccountId = useWatch({
+    control: feeForm.control,
+    name: "account_id",
+  });
+  const feeCurrencyId = useWatch({
+    control: feeForm.control,
+    name: "currency_id",
+  });
+  const cashbackAccountId = useWatch({
+    control: cashbackForm.control,
+    name: "account_id",
+  });
+  const cashbackCurrencyId = useWatch({
+    control: cashbackForm.control,
+    name: "currency_id",
+  });
+  const cashbackStatus = useWatch({
+    control: cashbackForm.control,
+    name: "status",
+  });
+  const rakebackAccountId = useWatch({
+    control: rakebackForm.control,
+    name: "account_id",
+  });
+  const rakebackCurrencyId = useWatch({
+    control: rakebackForm.control,
+    name: "currency_id",
+  });
+  const rakebackStatus = useWatch({
+    control: rakebackForm.control,
+    name: "status",
+  });
+  const betAccountId = useWatch({
+    control: betForm.control,
+    name: "account_id",
+  });
+  const betCurrencyId = useWatch({
+    control: betForm.control,
+    name: "currency_id",
+  });
+  const bonusAccountId = useWatch({
+    control: bonusForm.control,
+    name: "account_id",
+  });
+  const bonusCurrencyId = useWatch({
+    control: bonusForm.control,
+    name: "currency_id",
+  });
+  const bonusStatus = useWatch({
+    control: bonusForm.control,
+    name: "status",
+  });
+  const bonusWithdrawable = useWatch({
+    control: bonusForm.control,
+    name: "withdrawable",
+  });
+  const adjustmentAccountId = useWatch({
+    control: adjustmentForm.control,
+    name: "account_id",
+  });
+  const adjustmentCurrencyId = useWatch({
+    control: adjustmentForm.control,
+    name: "currency_id",
+  });
+  const adjustmentDirection = useWatch({
+    control: adjustmentForm.control,
+    name: "direction",
   });
 
   useEffect(() => {
@@ -399,8 +488,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={capitalForm.watch("account_id")}
-                currencyId={capitalForm.watch("currency_id")}
+                accountId={capitalAccountId}
+                currencyId={capitalCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   capitalForm.setValue("account_id", accountId);
                   capitalForm.setValue("currency_id", defaultCurrencyId);
@@ -434,8 +523,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={feeForm.watch("account_id")}
-                currencyId={feeForm.watch("currency_id")}
+                accountId={feeAccountId}
+                currencyId={feeCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   feeForm.setValue("account_id", accountId);
                   feeForm.setValue("currency_id", defaultCurrencyId);
@@ -473,8 +562,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={cashbackForm.watch("account_id")}
-                currencyId={cashbackForm.watch("currency_id")}
+                accountId={cashbackAccountId}
+                currencyId={cashbackCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   cashbackForm.setValue("account_id", accountId);
                   cashbackForm.setValue("currency_id", defaultCurrencyId);
@@ -492,7 +581,7 @@ export function NewMovementDialog({
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
-                  value={cashbackForm.watch("status")}
+                  value={cashbackStatus}
                   onValueChange={(v) =>
                     v && cashbackForm.setValue("status", v as "pendente")
                   }
@@ -530,8 +619,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={rakebackForm.watch("account_id")}
-                currencyId={rakebackForm.watch("currency_id")}
+                accountId={rakebackAccountId}
+                currencyId={rakebackCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   rakebackForm.setValue("account_id", accountId);
                   rakebackForm.setValue("currency_id", defaultCurrencyId);
@@ -549,7 +638,7 @@ export function NewMovementDialog({
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
-                  value={rakebackForm.watch("status")}
+                  value={rakebackStatus}
                   onValueChange={(v) =>
                     v && rakebackForm.setValue("status", v as "pendente")
                   }
@@ -587,8 +676,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={betForm.watch("account_id")}
-                currencyId={betForm.watch("currency_id")}
+                accountId={betAccountId}
+                currencyId={betCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   betForm.setValue("account_id", accountId);
                   betForm.setValue("currency_id", defaultCurrencyId);
@@ -633,8 +722,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={bonusForm.watch("account_id")}
-                currencyId={bonusForm.watch("currency_id")}
+                accountId={bonusAccountId}
+                currencyId={bonusCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   bonusForm.setValue("account_id", accountId);
                   bonusForm.setValue("currency_id", defaultCurrencyId);
@@ -647,7 +736,7 @@ export function NewMovementDialog({
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
-                  value={bonusForm.watch("status")}
+                  value={bonusStatus}
                   onValueChange={(v) =>
                     v && bonusForm.setValue("status", v as "pendente")
                   }
@@ -668,7 +757,7 @@ export function NewMovementDialog({
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={bonusForm.watch("withdrawable")}
+                  checked={bonusWithdrawable}
                   onChange={(e) =>
                     bonusForm.setValue("withdrawable", e.target.checked)
                   }
@@ -697,7 +786,7 @@ export function NewMovementDialog({
               <div className="space-y-2">
                 <Label>Conta (corretora/carteira)</Label>
                 <Select
-                  value={conversionForm.watch("account_id")}
+                  value={conversionAccountId}
                   onValueChange={(v) => {
                     if (!v) return;
                     conversionForm.setValue("account_id", v);
@@ -735,7 +824,7 @@ export function NewMovementDialog({
                 <div className="space-y-2">
                   <Label>Moeda origem</Label>
                   <Select
-                    value={conversionForm.watch("from_currency_id")}
+                    value={conversionFromCurrencyId}
                     onValueChange={(v) =>
                       v && conversionForm.setValue("from_currency_id", v)
                     }
@@ -745,7 +834,7 @@ export function NewMovementDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {cryptoAccounts
-                        .find((a) => a.id === conversionForm.watch("account_id"))
+                        .find((a) => a.id === conversionAccountId)
                         ?.balances.map((b) => (
                           <SelectItem key={b.currency_id} value={b.currency_id}>
                             {b.currency.code}
@@ -765,7 +854,7 @@ export function NewMovementDialog({
                 <div className="space-y-2">
                   <Label>Moeda destino</Label>
                   <Select
-                    value={conversionForm.watch("to_currency_id")}
+                    value={conversionToCurrencyId}
                     onValueChange={(v) =>
                       v && conversionForm.setValue("to_currency_id", v)
                     }
@@ -775,7 +864,7 @@ export function NewMovementDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {cryptoAccounts
-                        .find((a) => a.id === conversionForm.watch("account_id"))
+                        .find((a) => a.id === conversionAccountId)
                         ?.balances.map((b) => (
                           <SelectItem key={b.currency_id} value={b.currency_id}>
                             {b.currency.code}
@@ -826,8 +915,8 @@ export function NewMovementDialog({
             <>
               <AccountCurrencySelect
                 accounts={accounts}
-                accountId={adjustmentForm.watch("account_id")}
-                currencyId={adjustmentForm.watch("currency_id")}
+                accountId={adjustmentAccountId}
+                currencyId={adjustmentCurrencyId}
                 onAccountChange={(accountId, defaultCurrencyId) => {
                   adjustmentForm.setValue("account_id", accountId);
                   adjustmentForm.setValue("currency_id", defaultCurrencyId);
@@ -839,7 +928,7 @@ export function NewMovementDialog({
               <div className="space-y-2">
                 <Label>Direção</Label>
                 <Select
-                  value={adjustmentForm.watch("direction")}
+                  value={adjustmentDirection}
                   onValueChange={(v) =>
                     v &&
                     adjustmentForm.setValue("direction", v as "credit" | "debit")

@@ -68,7 +68,7 @@ Arquivos em UTF-8 com BOM e separador `;` (compatível com Excel pt-BR). Botões
 2. Variáveis de ambiente:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Deploy — rotas protegidas por middleware (login obrigatório)
+3. Deploy — rotas protegidas por Proxy do Next.js (login obrigatório)
 4. **Nunca** expor `SUPABASE_SERVICE_ROLE_KEY` como variável `NEXT_PUBLIC_`
 
 ### Checklist go-live

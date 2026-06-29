@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -123,11 +123,22 @@ export function AccountForm({
     name: "currency_balances",
   });
 
-  const accountType = form.watch("type");
-  const holderId = form.watch("holder_id");
-  const bankId = form.watch("bank_id");
-  const brokerId = form.watch("crypto_broker_id");
-  const bettingHouseId = form.watch("betting_house_id");
+  const accountType = useWatch({ control: form.control, name: "type" });
+  const holderId = useWatch({ control: form.control, name: "holder_id" });
+  const bankId = useWatch({ control: form.control, name: "bank_id" });
+  const brokerId = useWatch({
+    control: form.control,
+    name: "crypto_broker_id",
+  });
+  const bettingHouseId = useWatch({
+    control: form.control,
+    name: "betting_house_id",
+  });
+  const accountStatus = useWatch({ control: form.control, name: "status" });
+  const currencyBalances = useWatch({
+    control: form.control,
+    name: "currency_balances",
+  });
   const isCrypto = accountType === "crypto";
   const isBetting = accountType === "betting";
   const isBank = accountType === "bank";
@@ -234,7 +245,7 @@ export function AccountForm({
           <div className="space-y-2">
             <Label>Titular</Label>
             <Select
-              value={form.watch("holder_id")}
+              value={holderId}
               onValueChange={(v) => v && form.setValue("holder_id", v)}
             >
               <SelectTrigger className="w-full">
@@ -259,7 +270,7 @@ export function AccountForm({
             <div className="space-y-2">
               <Label>Banco</Label>
               <Select
-                value={form.watch("bank_id") ?? ""}
+                value={bankId ?? ""}
                 onValueChange={(v) => v && form.setValue("bank_id", v)}
               >
                 <SelectTrigger className="w-full">
@@ -293,7 +304,7 @@ export function AccountForm({
             <div className="space-y-2">
               <Label>Corretora / carteira</Label>
               <Select
-                value={form.watch("crypto_broker_id") ?? ""}
+                value={brokerId ?? ""}
                 onValueChange={(v) => v && form.setValue("crypto_broker_id", v)}
               >
                 <SelectTrigger className="w-full">
@@ -327,7 +338,7 @@ export function AccountForm({
             <div className="space-y-2">
               <Label>Casa de apostas</Label>
               <Select
-                value={form.watch("betting_house_id") ?? ""}
+                value={bettingHouseId ?? ""}
                 onValueChange={(v) => v && form.setValue("betting_house_id", v)}
               >
                 <SelectTrigger className="w-full">
@@ -390,7 +401,7 @@ export function AccountForm({
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={accountStatus}
                 onValueChange={(v) =>
                   v &&
                   form.setValue("status", v as CreateAccountInput["status"])
@@ -440,7 +451,7 @@ export function AccountForm({
               <div className="flex-1 space-y-2">
                 <Label>Moeda</Label>
                 <Select
-                  value={form.watch(`currency_balances.${index}.currency_id`)}
+                  value={currencyBalances?.[index]?.currency_id ?? ""}
                   onValueChange={(v) => {
                     if (!v) return;
                     form.setValue(`currency_balances.${index}.currency_id`, v);

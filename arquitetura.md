@@ -11,7 +11,7 @@ Documento de referência para implementação do sistema descrito em `PRD-jairob
 | Decisão | Escolha | Motivo |
 |---------|---------|--------|
 | Linguagem | **TypeScript** (strict) | Tipagem forte em regras financeiras e contratos de API |
-| Frontend + API | **Next.js 15** (App Router) | Deploy nativo na Vercel, SSR, Route Handlers, bom DX |
+| Frontend + API | **Next.js 16** (App Router) | Deploy nativo na Vercel, SSR, Route Handlers, Server Actions, bom DX |
 | Banco + Auth | **Supabase** (PostgreSQL + Auth + Storage) | RLS nativo, backup, MFA, storage para comprovantes |
 | Hospedagem | **Vercel** | CI/CD simples, edge middleware, bom para projeto pessoal |
 | UI | **Tailwind + shadcn/ui** (adaptado do DESIGN_SYSTEM.md) | Base pronta, dark/light, componentes acessíveis |
@@ -100,7 +100,7 @@ sequenceDiagram
 - **Server Components** para telas de leitura (dashboard, listagens).
 - **Server Actions** para mutações simples (criar conta, conciliar).
 - **Route Handlers** (`/api/*`) quando precisar de endpoints REST explícitos (exportação CSV, webhooks futuros).
-- **Middleware** (`middleware.ts`): proteger rotas autenticadas, refresh de sessão Supabase.
+- **Proxy** (`src/proxy.ts`): proteger rotas autenticadas, refresh de sessão Supabase.
 
 Estrutura de rotas sugerida:
 

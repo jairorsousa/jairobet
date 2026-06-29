@@ -1,4 +1,3 @@
-import { computeBalanceFromMovements } from "@/shared/lib/domain/balance";
 import { createClient } from "@/shared/lib/supabase/server";
 
 export async function recalculateAccountCurrencyBalance(
@@ -7,35 +6,12 @@ export async function recalculateAccountCurrencyBalance(
 ) {
   const supabase = await createClient();
 
-  const { data: accountCurrency, error: acError } = await supabase
-    .from("account_currencies")
-    .select("initial_balance")
-    .eq("account_id", accountId)
-    .eq("currency_id", currencyId)
-    .single();
+  const { error } = await supabase.rpc("recalculate_account_currency_balance", {
+    p_account_id: accountId,
+    p_currency_id: currencyId,
+  });
 
-  if (acError || !accountCurrency) return;
-
-  const { data: movements, error: movError } = await supabase
-    .from("movements")
-    .select("amount, direction, status")
-    .eq("account_id", accountId)
-    .eq("currency_id", currencyId);
-
-  if (movError) throw new Error(movError.message);
-
-  const calculated = computeBalanceFromMovements(
-    accountCurrency.initial_balance,
-    movements ?? [],
-  );
-
-  const { error: updateError } = await supabase
-    .from("account_currencies")
-    .update({ calculated_balance: calculated })
-    .eq("account_id", accountId)
-    .eq("currency_id", currencyId);
-
-  if (updateError) throw new Error(updateError.message);
+  if (error) throw new Error(error.message);
 }
 
 export async function recalculateBalancesForAccounts(

@@ -18,6 +18,18 @@ interface ContaDetailPageProps {
 export default async function ContaDetailPage({ params }: ContaDetailPageProps) {
   const { id } = await params;
 
+  let data: {
+    account: Awaited<ReturnType<typeof getAccount>>;
+    allHolders: Awaited<ReturnType<typeof listHolders>>;
+    banks: Awaited<ReturnType<typeof listActiveBanks>>;
+    cryptoBrokers: Awaited<ReturnType<typeof listActiveCryptoBrokers>>;
+    bettingHouses: Awaited<ReturnType<typeof listActiveBettingHouses>>;
+    currencies: Awaited<ReturnType<typeof listCurrencies>>;
+    movements: Awaited<ReturnType<typeof listAccountMovements>>;
+    reconciliations: Awaited<ReturnType<typeof listReconciliations>>;
+    selectableAccounts: Awaited<ReturnType<typeof listSelectableAccounts>>;
+  };
+
   try {
     const account = await getAccount(id);
     const [
@@ -39,32 +51,45 @@ export default async function ContaDetailPage({ params }: ContaDetailPageProps) 
       listReconciliations(id),
       listSelectableAccounts(),
     ]);
-    const holders = allHolders.filter(
-      (h) => h.status === "active" || h.id === account.holder_id,
-    );
 
-    return (
-      <>
-        <Header
-          title={account.name}
-          icon={<Wallet className="size-5 text-primary" />}
-        />
-        <PageContainer>
-          <AccountDetail
-            account={account}
-            holders={holders}
-            banks={banks}
-            cryptoBrokers={cryptoBrokers}
-            bettingHouses={bettingHouses}
-            currencies={currencies}
-            movements={movements}
-            reconciliations={reconciliations}
-            selectableAccounts={selectableAccounts}
-          />
-        </PageContainer>
-      </>
-    );
+    data = {
+      account,
+      allHolders,
+      banks,
+      cryptoBrokers,
+      bettingHouses,
+      currencies,
+      movements,
+      reconciliations,
+      selectableAccounts,
+    };
   } catch {
     notFound();
   }
+
+  const holders = data.allHolders.filter(
+    (h) => h.status === "active" || h.id === data.account.holder_id,
+  );
+
+  return (
+    <>
+      <Header
+        title={data.account.name}
+        icon={<Wallet className="size-5 text-primary" />}
+      />
+      <PageContainer>
+        <AccountDetail
+          account={data.account}
+          holders={holders}
+          banks={data.banks}
+          cryptoBrokers={data.cryptoBrokers}
+          bettingHouses={data.bettingHouses}
+          currencies={data.currencies}
+          movements={data.movements}
+          reconciliations={data.reconciliations}
+          selectableAccounts={data.selectableAccounts}
+        />
+      </PageContainer>
+    </>
+  );
 }

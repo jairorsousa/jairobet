@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ export function CryptoBrokerFormDialog({
       status: "active",
     },
   });
+  const status = useWatch({ control: form.control, name: "status" });
 
   useEffect(() => {
     if (open) {
@@ -116,7 +117,7 @@ export function CryptoBrokerFormDialog({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select
-              value={form.watch("status")}
+              value={status ?? "active"}
               onValueChange={(v) =>
                 v && form.setValue("status", v as CreateCryptoBrokerInput["status"])
               }

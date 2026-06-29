@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,14 @@ export function CapitalMovementDialog({
     },
   });
 
-  const selectedAccountId = form.watch("account_id");
+  const selectedAccountId = useWatch({
+    control: form.control,
+    name: "account_id",
+  });
+  const selectedCurrencyId = useWatch({
+    control: form.control,
+    name: "currency_id",
+  });
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === selectedAccountId),
     [accounts, selectedAccountId],
@@ -158,7 +165,7 @@ export function CapitalMovementDialog({
           <div className="space-y-2">
             <Label>Conta</Label>
             <Select
-              value={form.watch("account_id")}
+              value={selectedAccountId}
               onValueChange={(v) => v && form.setValue("account_id", v)}
             >
               <SelectTrigger className="w-full">
@@ -176,7 +183,7 @@ export function CapitalMovementDialog({
           <div className="space-y-2">
             <Label>Moeda</Label>
             <Select
-              value={form.watch("currency_id")}
+              value={selectedCurrencyId}
               onValueChange={(v) => v && form.setValue("currency_id", v)}
             >
               <SelectTrigger className="w-full">

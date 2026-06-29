@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -46,10 +46,18 @@ export function ConfirmTransferDialog({
   onSuccess,
 }: ConfirmTransferDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [receivedDraft, setReceivedDraft] = useState("");
+  const [receivedDrafts, setReceivedDrafts] = useState<Record<string, string>>(
+    {},
+  );
 
   const metadata = (transfer?.metadata ?? {}) as Record<string, unknown>;
   const expected = metadata.expected_received as number | undefined;
+  const transferDraftKey = transfer?.transfer_group_id ?? "empty";
+  const defaultReceivedDraft = transfer
+    ? formatNumberDraft(expected ?? transfer.amount)
+    : "";
+  const receivedDraft =
+    receivedDrafts[transferDraftKey] ?? defaultReceivedDraft;
 
   const form = useForm<ConfirmTransferInput>({
     resolver: zodResolver(confirmTransferSchema),
@@ -61,14 +69,6 @@ export function ConfirmTransferDialog({
         }
       : undefined,
   });
-  const { setValue } = form;
-
-  useEffect(() => {
-    if (!transfer || !open) return;
-    const initial = expected ?? transfer.amount;
-    setReceivedDraft(formatNumberDraft(initial));
-    setValue("received_amount", initial);
-  }, [transfer, open, expected, setValue]);
 
   async function onSubmit(values: ConfirmTransferInput) {
     const receivedAmount = parseDecimalDraft(receivedDraft);
@@ -142,7 +142,10 @@ export function ConfirmTransferDialog({
               onChange={(e) => {
                 const raw = e.target.value;
                 if (!isValidDecimalDraft(raw)) return;
-                setReceivedDraft(raw);
+                setReceivedDrafts((prev) => ({
+                  ...prev,
+                  [transferDraftKey]: raw,
+                }));
                 const parsed = parseDecimalDraft(raw);
                 if (parsed !== undefined) {
                   form.setValue("received_amount", parsed, {

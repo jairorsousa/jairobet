@@ -462,109 +462,92 @@ export async function createTransfer(input: CreateTransferInput) {
   const fromCurrency = await getCurrencyRate(parsed.from_currency_id);
   const toCurrency = await getCurrencyRate(parsed.to_currency_id);
   const transferGroupId = crypto.randomUUID();
+  const operatorId = await getOperatorId();
+  const supabase = await createClient();
 
-  const { data: toAccount } = await createClient()
-    .then((s) =>
-      s.from("accounts").select("name").eq("id", parsed.to_account_id).single(),
-    );
-  const { data: fromAccount } = await createClient()
-    .then((s) =>
-      s
-        .from("accounts")
-        .select("name")
-        .eq("id", parsed.from_account_id)
-        .single(),
-    );
+  const { data: toAccount } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("id", parsed.to_account_id)
+    .single();
+  const { data: fromAccount } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("id", parsed.from_account_id)
+    .single();
 
   const intraAccount = isIntraAccountTrader(
     parsed.kind,
     parsed.from_account_id,
     parsed.to_account_id,
   );
+  const status = parsed.status === "completed" ? "completed" : "pending";
+  const debitDescription =
+    parsed.description ??
+    buildTransferDescription(parsed.kind, "debit", {
+      counterAccountName: toAccount?.name ?? "destino",
+      fromCurrencyCode: fromCurrency.code,
+      toCurrencyCode: toCurrency.code,
+      intraAccount,
+    });
+  const creditDescription = buildTransferDescription(parsed.kind, "credit", {
+    counterAccountName: fromAccount?.name ?? "origem",
+    fromCurrencyCode: fromCurrency.code,
+    toCurrencyCode: toCurrency.code,
+    intraAccount,
+  });
+  const debitMetadata = {
+    transfer_kind: parsed.kind,
+    intra_account: intraAccount,
+    expected_received: parsed.expected_received_amount,
+    fee_amount: parsed.fee_amount,
+    to_currency_id: parsed.to_currency_id,
+    from_currency_code: fromCurrency.code,
+    to_currency_code: toCurrency.code,
+  };
+  const creditMetadata = {
+    transfer_kind: parsed.kind,
+    intra_account: intraAccount,
+    from_currency_code: fromCurrency.code,
+    to_currency_code: toCurrency.code,
+  };
 
-  const debit = await createMovementRow({
-    type: "transfer",
-    account_id: parsed.from_account_id,
-    counter_account_id: parsed.to_account_id,
-    currency_id: parsed.from_currency_id,
-    amount: parsed.sent_amount,
-    direction: "debit",
-    status: parsed.status === "completed" ? "completed" : "pending",
-    occurred_at: parsed.occurred_at,
-    description:
-      parsed.description ??
-      buildTransferDescription(parsed.kind, "debit", {
-        counterAccountName: toAccount?.name ?? "destino",
-        fromCurrencyCode: fromCurrency.code,
-        toCurrencyCode: toCurrency.code,
-        intraAccount,
-      }),
-    external_id: parsed.external_id,
-    transfer_group_id: transferGroupId,
-    exchange_rate: fromCurrency.last_rate_brl,
-    amount_brl: calculateAmountBrl(
+  const { data: debit, error } = await supabase.rpc("create_transfer_atomic", {
+    p_operator_id: operatorId,
+    p_transfer_group_id: transferGroupId,
+    p_from_account_id: parsed.from_account_id,
+    p_to_account_id: parsed.to_account_id,
+    p_from_currency_id: parsed.from_currency_id,
+    p_to_currency_id: parsed.to_currency_id,
+    p_sent_amount: parsed.sent_amount,
+    p_received_amount: parsed.received_amount ?? null,
+    p_status: status,
+    p_occurred_at: parsed.occurred_at,
+    p_debit_description: debitDescription,
+    p_credit_description: creditDescription,
+    p_external_id: parsed.external_id ?? null,
+    p_from_exchange_rate: fromCurrency.last_rate_brl,
+    p_to_exchange_rate: toCurrency.last_rate_brl,
+    p_from_amount_brl: calculateAmountBrl(
       parsed.sent_amount,
       fromCurrency.code,
       fromCurrency.last_rate_brl,
     ),
-    metadata: {
-      transfer_kind: parsed.kind,
-      intra_account: intraAccount,
-      expected_received: parsed.expected_received_amount,
-      fee_amount: parsed.fee_amount,
-      to_currency_id: parsed.to_currency_id,
-      from_currency_code: fromCurrency.code,
-      to_currency_code: toCurrency.code,
-    },
+    p_to_amount_brl: parsed.received_amount
+      ? calculateAmountBrl(
+          parsed.received_amount,
+          toCurrency.code,
+          toCurrency.last_rate_brl,
+        )
+      : null,
+    p_debit_metadata: debitMetadata,
+    p_credit_metadata: creditMetadata,
   });
 
-  const recalcPairs = [
-    {
-      accountId: parsed.from_account_id,
-      currencyId: parsed.from_currency_id,
-    },
-  ];
+  if (error) throw new Error(error.message);
 
-  if (parsed.status === "completed" && parsed.received_amount) {
-    await createMovementRow({
-      type: "transfer",
-      account_id: parsed.to_account_id,
-      counter_account_id: parsed.from_account_id,
-      currency_id: parsed.to_currency_id,
-      amount: parsed.received_amount,
-      direction: "credit",
-      status: "completed",
-      occurred_at: parsed.occurred_at,
-      description: buildTransferDescription(parsed.kind, "credit", {
-        counterAccountName: fromAccount?.name ?? "origem",
-        fromCurrencyCode: fromCurrency.code,
-        toCurrencyCode: toCurrency.code,
-        intraAccount,
-      }),
-      external_id: parsed.external_id,
-      transfer_group_id: transferGroupId,
-      exchange_rate: toCurrency.last_rate_brl,
-      amount_brl: calculateAmountBrl(
-        parsed.received_amount,
-        toCurrency.code,
-        toCurrency.last_rate_brl,
-      ),
-      metadata: {
-        transfer_kind: parsed.kind,
-        intra_account: intraAccount,
-        from_currency_code: fromCurrency.code,
-        to_currency_code: toCurrency.code,
-      },
-    });
-    recalcPairs.push({
-      accountId: parsed.to_account_id,
-      currencyId: parsed.to_currency_id,
-    });
-  }
-
-  await recalculateBalancesForAccounts(recalcPairs);
   revalidateMovementPaths();
-  return debit;
+  return debit as Movement;
 }
 
 export async function updateTransfer(input: UpdateTransferInput) {
@@ -600,49 +583,12 @@ export async function updateTransfer(input: UpdateTransferInput) {
     .select("name")
     .eq("id", debit.account_id)
     .single();
-  const { data: toAccount } = await supabase
-    .from("accounts")
-    .select("name")
-    .eq("id", toAccountId)
-    .single();
-
   const intraAccount = metadata.intra_account === true;
   const newMetadata = {
     ...metadata,
     expected_received: parsed.expected_received_amount,
     fee_amount: parsed.fee_amount ?? metadata.fee_amount ?? 0,
   };
-
-  const { error: debitUpdateError } = await supabase
-    .from("movements")
-    .update({
-      amount: parsed.sent_amount,
-      status: parsed.status,
-      occurred_at: parsed.occurred_at,
-      description: parsed.description ?? debit.description,
-      external_id: parsed.external_id ?? debit.external_id,
-      metadata: newMetadata,
-      exchange_rate: fromCurrency.last_rate_brl,
-      amount_brl: calculateAmountBrl(
-        parsed.sent_amount,
-        fromCurrency.code,
-        fromCurrency.last_rate_brl,
-      ),
-    })
-    .eq("id", debit.id);
-
-  if (debitUpdateError) throw new Error(debitUpdateError.message);
-
-  const recalcPairs: Array<{ accountId: string; currencyId: string }> = [
-    { accountId: debit.account_id, currencyId: debit.currency_id },
-  ];
-
-  const { data: existingCredit } = await supabase
-    .from("movements")
-    .select("*")
-    .eq("transfer_group_id", parsed.transfer_group_id)
-    .eq("direction", "credit")
-    .maybeSingle();
 
   const creditDescription = buildTransferDescription(kind, "credit", {
     counterAccountName: fromAccount?.name ?? "origem",
@@ -651,76 +597,41 @@ export async function updateTransfer(input: UpdateTransferInput) {
     intraAccount,
   });
 
-  if (parsed.status === "completed") {
-    if (!parsed.received_amount) {
-      throw new Error("Informe o valor recebido");
-    }
-
-    if (existingCredit) {
-      const { error: creditUpdateError } = await supabase
-        .from("movements")
-        .update({
-          amount: parsed.received_amount,
-          occurred_at: parsed.occurred_at,
-          external_id: parsed.external_id ?? debit.external_id,
-          description: creditDescription,
-          exchange_rate: toCurrency.last_rate_brl,
-          amount_brl: calculateAmountBrl(
-            parsed.received_amount,
-            toCurrency.code,
-            toCurrency.last_rate_brl,
-          ),
-        })
-        .eq("id", existingCredit.id);
-
-      if (creditUpdateError) throw new Error(creditUpdateError.message);
-    } else {
-      await createMovementRow({
-        type: "transfer",
-        account_id: toAccountId,
-        counter_account_id: debit.account_id,
-        currency_id: toCurrencyId,
-        amount: parsed.received_amount,
-        direction: "credit",
-        status: "completed",
-        occurred_at: parsed.occurred_at,
-        description: creditDescription,
-        external_id: parsed.external_id ?? debit.external_id,
-        transfer_group_id: parsed.transfer_group_id,
-        exchange_rate: toCurrency.last_rate_brl,
-        amount_brl: calculateAmountBrl(
+  const { error: rpcError } = await supabase.rpc("update_transfer_atomic", {
+    p_transfer_group_id: parsed.transfer_group_id,
+    p_sent_amount: parsed.sent_amount,
+    p_received_amount: parsed.received_amount ?? null,
+    p_status: parsed.status,
+    p_occurred_at: parsed.occurred_at,
+    p_debit_description: parsed.description ?? debit.description,
+    p_credit_description: creditDescription,
+    p_external_id: parsed.external_id ?? debit.external_id,
+    p_to_account_id: toAccountId,
+    p_to_currency_id: toCurrencyId,
+    p_from_exchange_rate: fromCurrency.last_rate_brl,
+    p_to_exchange_rate: toCurrency.last_rate_brl,
+    p_from_amount_brl: calculateAmountBrl(
+      parsed.sent_amount,
+      fromCurrency.code,
+      fromCurrency.last_rate_brl,
+    ),
+    p_to_amount_brl: parsed.received_amount
+      ? calculateAmountBrl(
           parsed.received_amount,
           toCurrency.code,
           toCurrency.last_rate_brl,
-        ),
-        metadata: {
-          transfer_kind: kind,
-          intra_account: intraAccount,
-          from_currency_code: fromCurrency.code,
-          to_currency_code: toCurrency.code,
-        },
-      });
-    }
+        )
+      : null,
+    p_debit_metadata: newMetadata,
+    p_credit_metadata: {
+      transfer_kind: kind,
+      intra_account: intraAccount,
+      from_currency_code: fromCurrency.code,
+      to_currency_code: toCurrency.code,
+    },
+  });
 
-    recalcPairs.push({
-      accountId: toAccountId,
-      currencyId: toCurrencyId,
-    });
-  } else if (existingCredit) {
-    const { error: creditDeleteError } = await supabase
-      .from("movements")
-      .delete()
-      .eq("id", existingCredit.id);
-
-    if (creditDeleteError) throw new Error(creditDeleteError.message);
-
-    recalcPairs.push({
-      accountId: existingCredit.account_id,
-      currencyId: existingCredit.currency_id,
-    });
-  }
-
-  await recalculateBalancesForAccounts(recalcPairs);
+  if (rpcError) throw new Error(rpcError.message);
   revalidateMovementPaths();
 }
 
@@ -755,50 +666,41 @@ export async function confirmTransferReceipt(input: ConfirmTransferInput) {
   if (!toAccountId) throw new Error("Conta destino não definida");
   await assertAccountOpen(toAccountId);
 
-  await createMovementRow({
-    type: "transfer",
-    account_id: toAccountId,
-    counter_account_id: debit.account_id,
-    currency_id: toCurrencyId,
-    amount: parsed.received_amount,
-    direction: "credit",
-    status: "completed",
-    occurred_at: parsed.occurred_at ?? debit.occurred_at,
-    description: buildTransferDescription(
-      resolveTransferKind(metadata),
-      "credit",
-      {
-        counterAccountName: fromAccount?.name ?? "origem",
-        fromCurrencyCode: metadata.from_currency_code as string | undefined,
-        toCurrencyCode: metadata.to_currency_code as string | undefined,
-        intraAccount: metadata.intra_account === true,
+  const transferKind = resolveTransferKind(metadata);
+  const { error: rpcError } = await supabase.rpc(
+    "confirm_transfer_receipt_atomic",
+    {
+      p_transfer_group_id: parsed.transfer_group_id,
+      p_received_amount: parsed.received_amount,
+      p_occurred_at: parsed.occurred_at ?? debit.occurred_at,
+      p_to_account_id: toAccountId,
+      p_to_currency_id: toCurrencyId,
+      p_credit_description: buildTransferDescription(
+        transferKind,
+        "credit",
+        {
+          counterAccountName: fromAccount?.name ?? "origem",
+          fromCurrencyCode: metadata.from_currency_code as string | undefined,
+          toCurrencyCode: metadata.to_currency_code as string | undefined,
+          intraAccount: metadata.intra_account === true,
+        },
+      ),
+      p_to_exchange_rate: toCurrency.last_rate_brl,
+      p_to_amount_brl: calculateAmountBrl(
+        parsed.received_amount,
+        toCurrency.code,
+        toCurrency.last_rate_brl,
+      ),
+      p_credit_metadata: {
+        transfer_kind: transferKind,
+        intra_account: metadata.intra_account === true,
+        from_currency_code: metadata.from_currency_code,
+        to_currency_code: metadata.to_currency_code,
       },
-    ),
-    external_id: debit.external_id,
-    transfer_group_id: parsed.transfer_group_id,
-    exchange_rate: toCurrency.last_rate_brl,
-    amount_brl: calculateAmountBrl(
-      parsed.received_amount,
-      toCurrency.code,
-      toCurrency.last_rate_brl,
-    ),
-    metadata: {
-      transfer_kind: resolveTransferKind(metadata),
-      intra_account: metadata.intra_account === true,
-      from_currency_code: metadata.from_currency_code,
-      to_currency_code: metadata.to_currency_code,
     },
-  });
+  );
 
-  await supabase
-    .from("movements")
-    .update({ status: "completed" })
-    .eq("id", debit.id);
-
-  await recalculateBalancesForAccounts([
-    { accountId: debit.account_id, currencyId: debit.currency_id },
-    { accountId: toAccountId, currencyId: toCurrencyId },
-  ]);
+  if (rpcError) throw new Error(rpcError.message);
 
   revalidateMovementPaths();
 }
@@ -1234,41 +1136,10 @@ export async function updateCapitalMovement(input: UpdateCapitalMovementInput) {
 export async function deleteMovement(id: string) {
   const supabase = await createClient();
 
-  const { data: movement, error: fetchError } = await supabase
-    .from("movements")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (fetchError || !movement) throw new Error("Movimentação não encontrada");
-
-  const recalcPairs: Array<{ accountId: string; currencyId: string }> = [
-    { accountId: movement.account_id, currencyId: movement.currency_id },
-  ];
-
-  if (movement.transfer_group_id) {
-    const { data: related } = await supabase
-      .from("movements")
-      .select("*")
-      .eq("transfer_group_id", movement.transfer_group_id);
-
-    for (const row of related ?? []) {
-      if (row.id !== id) {
-        await supabase.from("movements").delete().eq("id", row.id);
-        recalcPairs.push({
-          accountId: row.account_id,
-          currencyId: row.currency_id,
-        });
-      }
-    }
-  }
-
-  const { error } = await supabase.from("movements").delete().eq("id", id);
+  const { error } = await supabase.rpc("delete_movement_atomic", {
+    p_movement_id: id,
+  });
   if (error) throw new Error(error.message);
 
-  const uniqueRecalc = new Map(
-    recalcPairs.map((p) => [`${p.accountId}:${p.currencyId}`, p]),
-  );
-  await recalculateBalancesForAccounts([...uniqueRecalc.values()]);
   revalidateMovementPaths();
 }
