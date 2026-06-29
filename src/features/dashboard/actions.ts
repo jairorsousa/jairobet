@@ -34,7 +34,7 @@ async function fetchAllMovements(): Promise<DashboardMovementRow[]> {
     const { data, error } = await supabase
       .from("movements")
       .select(
-        "type, account_id, currency_id, amount, amount_brl, direction, status, occurred_at",
+        "type, account_id, currency_id, amount, amount_brl, direction, status, occurred_at, metadata",
       )
       .order("occurred_at", { ascending: true })
       .range(from, from + pageSize - 1);

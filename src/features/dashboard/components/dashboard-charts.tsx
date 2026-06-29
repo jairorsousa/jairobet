@@ -42,18 +42,64 @@ function formatBrlTooltip(value: number | string | undefined) {
 interface DashboardPieChartsProps {
   equityByHolder: PieSlice[];
   equityByAccountType: PieSlice[];
+  receivedBonusesByType: PieSlice[];
   holderId: string;
+}
+
+function BonusPieCard({ data }: { data: PieSlice[] }) {
+  return (
+    <Card className="glass-card border-border/50">
+      <CardHeader>
+        <CardTitle className="text-base">Bônus recebidos por tipo</CardTitle>
+        <CardDescription>Cashback, rakeback e bônus em BRL</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            Nenhum bônus recebido registrado.
+          </p>
+        ) : (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                >
+                  {data.map((_, index) => (
+                    <Cell
+                      key={index}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatBrlTooltip(value as number)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function DashboardPieCharts({
   equityByHolder,
   equityByAccountType,
+  receivedBonusesByType,
   holderId,
 }: DashboardPieChartsProps) {
   const showHolderChart = holderId === "all" && equityByHolder.length > 0;
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
       {showHolderChart ? (
         <Card className="glass-card border-border/50">
           <CardHeader>
@@ -90,9 +136,7 @@ export function DashboardPieCharts({
         </Card>
       ) : null}
 
-      <Card
-        className={`glass-card border-border/50 ${!showHolderChart ? "lg:col-span-2" : ""}`}
-      >
+      <Card className="glass-card border-border/50">
         <CardHeader>
           <CardTitle className="text-base">Patrimônio por tipo de conta</CardTitle>
           <CardDescription>Banco, cripto e casas de apostas</CardDescription>
@@ -131,6 +175,8 @@ export function DashboardPieCharts({
           )}
         </CardContent>
       </Card>
+
+      <BonusPieCard data={receivedBonusesByType} />
     </div>
   );
 }

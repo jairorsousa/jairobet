@@ -117,6 +117,26 @@ describe("computeDashboard", () => {
       status: "completed",
       occurred_at: "2026-03-10",
     },
+    {
+      type: "rakeback",
+      account_id: "a2",
+      currency_id: "brl",
+      amount: 40,
+      amount_brl: 40,
+      direction: "credit",
+      status: "completed",
+      occurred_at: "2026-03-11",
+    },
+    {
+      type: "bonus",
+      account_id: "a2",
+      currency_id: "brl",
+      amount: 60,
+      amount_brl: 60,
+      direction: "credit",
+      status: "completed",
+      occurred_at: "2026-03-12",
+    },
   ];
 
   const pendingTransfers = [
@@ -143,7 +163,11 @@ describe("computeDashboard", () => {
     expect(result.kpis.netCapital).toBe(8000);
     expect(result.kpis.accumulatedResult).toBe(500);
     expect(result.kpis.totalFees).toBe(50);
-    expect(result.kpis.realizedCashback).toBe(100);
+    expect(result.kpis.receivedBonuses.cashback).toBe(100);
+    expect(result.kpis.receivedBonuses.rakeback).toBe(40);
+    expect(result.kpis.receivedBonuses.bonus).toBe(60);
+    expect(result.kpis.receivedBonuses.total).toBe(200);
+    expect(result.receivedBonusesByType).toHaveLength(3);
   });
 
   it("filters KPIs by holder", () => {

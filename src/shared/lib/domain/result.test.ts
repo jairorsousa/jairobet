@@ -6,6 +6,7 @@ import {
   calculatePlatformResult,
   calculateROI,
   calculateRealizedCashback,
+  calculateReceivedBonusesBreakdown,
 } from "./result";
 
 describe("result calculations", () => {
@@ -49,6 +50,57 @@ describe("result calculations", () => {
       },
     ]);
     expect(cashback).toBe(50);
+  });
+
+  it("sums received bonuses across cashback, rakeback and bonus", () => {
+    const breakdown = calculateReceivedBonusesBreakdown([
+      {
+        type: "cashback",
+        amount_brl: 50,
+        direction: "credit",
+        status: "completed",
+      },
+      {
+        type: "rakeback",
+        amount_brl: 20,
+        direction: "credit",
+        status: "completed",
+      },
+      {
+        type: "bonus",
+        amount_brl: 30,
+        direction: "credit",
+        status: "completed",
+      },
+      {
+        type: "bonus",
+        amount_brl: 10,
+        direction: "credit",
+        status: "pending",
+      },
+    ]);
+
+    expect(breakdown).toEqual({
+      cashback: 50,
+      rakeback: 20,
+      bonus: 30,
+      total: 100,
+    });
+  });
+
+  it("counts bonus metadata as received when movement status is pending", () => {
+    const breakdown = calculateReceivedBonusesBreakdown([
+      {
+        type: "rakeback",
+        amount_brl: 15,
+        direction: "credit",
+        status: "pending",
+        metadata: { rakeback_status: "recebido" },
+      },
+    ]);
+
+    expect(breakdown.rakeback).toBe(15);
+    expect(breakdown.total).toBe(15);
   });
 
   it("calculates platform result", () => {

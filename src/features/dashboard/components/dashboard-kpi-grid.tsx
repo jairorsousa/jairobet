@@ -102,10 +102,10 @@ export function DashboardKpiGrid({ kpis }: DashboardKpiGridProps) {
       valueClass: "text-destructive",
     },
     {
-      label: "Cashback recebido",
-      description: "Somente status recebido",
+      label: "Bônus recebidos",
+      description: `Cashback ${formatMoney(kpis.receivedBonuses.cashback, "BRL")} · Rakeback ${formatMoney(kpis.receivedBonuses.rakeback, "BRL")} · Bônus ${formatMoney(kpis.receivedBonuses.bonus, "BRL")}`,
       icon: Gift,
-      value: formatMoney(kpis.realizedCashback, "BRL"),
+      value: formatMoney(kpis.receivedBonuses.total, "BRL"),
       valueClass: "text-success",
     },
   ];
@@ -145,9 +145,7 @@ export function DashboardKpiGrid({ kpis }: DashboardKpiGridProps) {
         {accountTypeLabels.crypto.toLowerCase()},{" "}
         {kpis.activeAccountsByType.betting}{" "}
         {accountTypeLabels.betting.toLowerCase()}
-        {kpis.realizedBonuses > 0
-          ? ` · Bônus recebidos: ${formatMoney(kpis.realizedBonuses, "BRL")}`
-          : ""}
+
       </p>
     </div>
   );

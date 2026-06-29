@@ -76,6 +76,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <DashboardPieCharts
             equityByHolder={data.equityByHolder}
             equityByAccountType={data.equityByAccountType}
+            receivedBonusesByType={data.receivedBonusesByType}
             holderId={data.holderId}
           />
 

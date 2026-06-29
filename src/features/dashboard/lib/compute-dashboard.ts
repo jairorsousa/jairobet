@@ -15,10 +15,11 @@ import {
   calculateAccumulatedResult,
   calculateNetCapital,
   calculateOperationalEquity,
-  calculateRealizedCashback,
+  calculateReceivedBonusesBreakdown,
   calculateROI,
   calculateTotalFees,
   type MovementSummary,
+  type ReceivedBonusesBreakdown,
 } from "@/shared/lib/domain/result";
 import type {
   AccountType,
@@ -40,6 +41,7 @@ export interface DashboardMovementRow {
   direction: MovementDirection;
   status: MovementStatus;
   occurred_at: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DashboardKpis {
@@ -53,8 +55,7 @@ export interface DashboardKpis {
   monthResult: number;
   roi: number | null;
   totalFees: number;
-  realizedCashback: number;
-  realizedBonuses: number;
+  receivedBonuses: ReceivedBonusesBreakdown;
   activeAccountsByType: Record<AccountType, number>;
 }
 
@@ -75,6 +76,7 @@ export interface DashboardComputed {
   kpis: DashboardKpis;
   equityByHolder: PieSlice[];
   equityByAccountType: PieSlice[];
+  receivedBonusesByType: PieSlice[];
   timeSeries: TimeSeriesPoint[];
 }
 
@@ -109,6 +111,7 @@ function toMovementSummaries(
     amount_brl: m.amount_brl,
     direction: m.direction,
     status: m.status,
+    metadata: m.metadata,
   }));
 }
 
@@ -126,18 +129,14 @@ export function calculateInTransit(
     .toNumber();
 }
 
-export function calculateRealizedBonuses(
-  movements: MovementSummary[],
-): number {
-  return movements
-    .filter(
-      (m) =>
-        m.type === "bonus" &&
-        m.status === "completed" &&
-        m.direction === "credit",
-    )
-    .reduce((sum, m) => sum.plus(m.amount_brl), new Decimal(0))
-    .toNumber();
+export function buildReceivedBonusesByType(
+  breakdown: ReceivedBonusesBreakdown,
+): PieSlice[] {
+  return [
+    { name: "Cashback", value: breakdown.cashback },
+    { name: "Rakeback", value: breakdown.rakeback },
+    { name: "Bônus", value: breakdown.bonus },
+  ].filter((slice) => slice.value > 0);
 }
 
 function sumCapital(
@@ -375,6 +374,7 @@ export function computeDashboard(
     filteredMovements,
     period,
   );
+  const receivedBonuses = calculateReceivedBonusesBreakdown(summaries);
 
   return {
     kpis: {
@@ -388,8 +388,7 @@ export function computeDashboard(
       monthResult,
       roi: calculateROI(accumulatedResult, netCapital),
       totalFees: calculateTotalFees(summaries),
-      realizedCashback: calculateRealizedCashback(summaries),
-      realizedBonuses: calculateRealizedBonuses(summaries),
+      receivedBonuses,
       activeAccountsByType: countActiveByType(filteredAccounts),
     },
     equityByHolder: buildEquityByHolder(
@@ -399,6 +398,7 @@ export function computeDashboard(
       filteredAccounts,
       accountTypeLabels,
     ),
+    receivedBonusesByType: buildReceivedBonusesByType(receivedBonuses),
     timeSeries,
   };
 }

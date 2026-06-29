@@ -71,16 +71,74 @@ export function sumMovementsByType(
     .toNumber();
 }
 
+export function isReceivedBonusMovement(movement: MovementSummary): boolean {
+  if (movement.direction !== "credit") return false;
+  if (
+    movement.type !== "cashback" &&
+    movement.type !== "rakeback" &&
+    movement.type !== "bonus"
+  ) {
+    return false;
+  }
+
+  if (movement.status === "completed") return true;
+
+  const meta = movement.metadata ?? {};
+  if (movement.type === "cashback") {
+    return meta.cashback_status === "recebido";
+  }
+  if (movement.type === "rakeback") {
+    return meta.rakeback_status === "recebido";
+  }
+  if (movement.type === "bonus") {
+    return (
+      meta.bonus_status === "creditado" || meta.bonus_status === "utilizado"
+    );
+  }
+
+  return false;
+}
+
+export interface ReceivedBonusesBreakdown {
+  cashback: number;
+  rakeback: number;
+  bonus: number;
+  total: number;
+}
+
+export function calculateReceivedBonusesBreakdown(
+  movements: MovementSummary[],
+): ReceivedBonusesBreakdown {
+  const breakdown = { cashback: 0, rakeback: 0, bonus: 0 };
+
+  for (const movement of movements) {
+    if (!isReceivedBonusMovement(movement)) continue;
+
+    if (movement.type === "cashback") {
+      breakdown.cashback += movement.amount_brl;
+    } else if (movement.type === "rakeback") {
+      breakdown.rakeback += movement.amount_brl;
+    } else if (movement.type === "bonus") {
+      breakdown.bonus += movement.amount_brl;
+    }
+  }
+
+  return {
+    ...breakdown,
+    total: breakdown.cashback + breakdown.rakeback + breakdown.bonus,
+  };
+}
+
 export function calculateRealizedCashback(movements: MovementSummary[]): number {
-  return movements
-    .filter(
-      (m) =>
-        m.type === "cashback" &&
-        m.status === "completed" &&
-        m.direction === "credit",
-    )
-    .reduce((sum, m) => sum.plus(m.amount_brl), new Decimal(0))
-    .toNumber();
+  return calculateReceivedBonusesBreakdown(movements).cashback;
+}
+
+export function calculateRealizedRakeback(movements: MovementSummary[]): number {
+  return calculateReceivedBonusesBreakdown(movements).rakeback;
+}
+
+export function calculateRealizedBonuses(movements: MovementSummary[]): number {
+  return calculateReceivedBonusesBreakdown(movements).bonus;
 }
 
 export function calculateTotalFees(movements: MovementSummary[]): number {
