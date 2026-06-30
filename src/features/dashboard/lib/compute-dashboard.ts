@@ -70,6 +70,7 @@ export interface TimeSeriesPoint {
   patrimony: number;
   netCapital: number;
   result: number;
+  dailyResult: number;
 }
 
 export interface DashboardComputed {
@@ -298,12 +299,32 @@ export function buildTimeSeries(
   return sampled.map((date) => {
     const patrimony = computeEquityAtDate(accounts, movements, date);
     const netCapital = computeNetCapitalAtDate(movements, date);
+    const result = calculateAccumulatedResult(patrimony, netCapital);
+    const previousDate = format(
+      subDays(new Date(date + "T12:00:00"), 1),
+      "yyyy-MM-dd",
+    );
+    const previousPatrimony = computeEquityAtDate(
+      accounts,
+      movements,
+      previousDate,
+    );
+    const previousNetCapital = computeNetCapitalAtDate(
+      movements,
+      previousDate,
+    );
+    const previousResult = calculateAccumulatedResult(
+      previousPatrimony,
+      previousNetCapital,
+    );
+
     return {
       date,
       label: format(new Date(date + "T12:00:00"), "dd/MM"),
       patrimony,
       netCapital,
-      result: calculateAccumulatedResult(patrimony, netCapital),
+      result,
+      dailyResult: new Decimal(result).minus(previousResult).toNumber(),
     };
   });
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildEquityByHolder,
   buildTimeSeries,
@@ -11,6 +11,10 @@ import type {
   AccountWithDetails,
   PendingTransfer,
 } from "@/shared/types/database";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const currency = {
   id: "brl",
@@ -200,5 +204,46 @@ describe("computeDashboard", () => {
     const series = buildTimeSeries(accounts, movements, "30d");
     expect(series.length).toBeGreaterThan(0);
     expect(series[series.length - 1].patrimony).toBeGreaterThan(0);
+  });
+
+  it("calculates daily result from day-over-day accumulated result changes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-30T12:00:00"));
+
+    const series = buildTimeSeries(
+      [makeAccount("daily", "h1", "Titular A", "betting", 0)],
+      [
+        {
+          type: "cashback",
+          account_id: "daily",
+          currency_id: "brl",
+          amount: 100,
+          amount_brl: 100,
+          direction: "credit",
+          status: "completed",
+          occurred_at: "2026-06-29",
+        },
+        {
+          type: "fee",
+          account_id: "daily",
+          currency_id: "brl",
+          amount: 40,
+          amount_brl: 40,
+          direction: "debit",
+          status: "completed",
+          occurred_at: "2026-06-30",
+        },
+      ],
+      "7d",
+    );
+
+    expect(series.find((point) => point.date === "2026-06-29")).toMatchObject({
+      result: 100,
+      dailyResult: 100,
+    });
+    expect(series.find((point) => point.date === "2026-06-30")).toMatchObject({
+      result: 60,
+      dailyResult: -40,
+    });
   });
 });

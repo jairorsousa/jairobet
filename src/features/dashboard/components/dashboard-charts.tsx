@@ -1,7 +1,10 @@
 "use client";
 
 import {
+  Bar,
+  BarChart,
   Cell,
+  CartesianGrid,
   Legend,
   Line,
   LineChart,
@@ -198,67 +201,120 @@ export function DashboardEvolutionChart({
   period,
 }: DashboardEvolutionChartProps) {
   return (
-    <Card className="glass-card border-border/50">
-      <CardHeader>
-        <CardTitle className="text-base">Evolução no tempo</CardTitle>
-        <CardDescription>
-          Patrimônio, capital líquido e resultado — {periodLabels[period]}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {timeSeries.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            Sem dados no período selecionado.
-          </p>
-        ) : (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={timeSeries}>
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11 }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) =>
-                    new Intl.NumberFormat("pt-BR", {
-                      notation: "compact",
-                      maximumFractionDigits: 1,
-                    }).format(v)
-                  }
-                />
-                <Tooltip formatter={(value) => formatBrlTooltip(value as number)} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="patrimony"
-                  name="Patrimônio"
-                  stroke="hsl(45 93% 47%)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="netCapital"
-                  name="Capital líquido"
-                  stroke="hsl(199 89% 48%)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="result"
-                  name="Resultado"
-                  stroke="hsl(142 70% 45%)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <Card className="glass-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base">Resultado por dia</CardTitle>
+          <CardDescription>
+            Variação diária do resultado — {periodLabels[period]}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {timeSeries.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Sem dados no período selecionado.
+            </p>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={timeSeries}>
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="hsl(222 30% 18%)"
+                    strokeDasharray="3 3"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) =>
+                      new Intl.NumberFormat("pt-BR", {
+                        notation: "compact",
+                        maximumFractionDigits: 1,
+                      }).format(v)
+                    }
+                  />
+                  <Tooltip
+                    formatter={(value) => formatBrlTooltip(value as number)}
+                  />
+                  <Bar
+                    dataKey="dailyResult"
+                    name="Resultado do dia"
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {timeSeries.map((point) => (
+                      <Cell
+                        key={point.date}
+                        fill={
+                          point.dailyResult >= 0
+                            ? "hsl(142 70% 45%)"
+                            : "hsl(0 84% 60%)"
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base">Resultado acumulado</CardTitle>
+          <CardDescription>
+            Resultado acumulado da operação — {periodLabels[period]}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {timeSeries.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Sem dados no período selecionado.
+            </p>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={timeSeries}>
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="hsl(222 30% 18%)"
+                    strokeDasharray="3 3"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) =>
+                      new Intl.NumberFormat("pt-BR", {
+                        notation: "compact",
+                        maximumFractionDigits: 1,
+                      }).format(v)
+                    }
+                  />
+                  <Tooltip
+                    formatter={(value) => formatBrlTooltip(value as number)}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="result"
+                    name="Resultado acumulado"
+                    stroke="hsl(142 70% 45%)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
