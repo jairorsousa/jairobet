@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeBalanceFromMovements } from "./balance";
+import { accountHasBalance, computeBalanceFromMovements } from "./balance";
 
 describe("balance calculations", () => {
   it("subtracts pending transfer debits from the origin balance", () => {
@@ -25,5 +25,26 @@ describe("balance calculations", () => {
     ]);
 
     expect(balance).toBe(1175);
+  });
+
+  it("detects accounts that should appear in balance-only lists", () => {
+    expect(
+      accountHasBalance({
+        balances: [{ calculated_balance: 0 }],
+        pending_balance: 0,
+      }),
+    ).toBe(false);
+    expect(
+      accountHasBalance({
+        balances: [{ calculated_balance: -10 }],
+        pending_balance: 0,
+      }),
+    ).toBe(true);
+    expect(
+      accountHasBalance({
+        balances: [{ calculated_balance: 0 }],
+        pending_balance: 25,
+      }),
+    ).toBe(true);
   });
 });

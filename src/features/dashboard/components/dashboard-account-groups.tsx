@@ -6,7 +6,10 @@ import {
   accountTypeColors,
   accountTypeLabels,
 } from "@/shared/constants/labels";
-import { sumBalancesInBrl } from "@/shared/lib/domain/balance";
+import {
+  accountHasBalance,
+  sumBalancesInBrl,
+} from "@/shared/lib/domain/balance";
 import { formatMoney } from "@/shared/lib/money/format";
 import type { AccountType, AccountWithDetails } from "@/shared/types/database";
 import { cn } from "@/lib/utils";
@@ -30,12 +33,14 @@ export function DashboardAccountGroups({
       ? accounts
       : accounts.filter((a) => a.holder_id === holderId);
 
-  const active = filtered.filter((a) => a.status !== "closed");
+  const active = filtered.filter(
+    (a) => a.status !== "closed" && accountHasBalance(a),
+  );
 
   if (active.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border/50 py-12 text-center text-muted-foreground">
-        Nenhuma conta cadastrada
+        Nenhuma conta com saldo
         {holderId !== "all" ? " para este titular" : ""}.
       </p>
     );
